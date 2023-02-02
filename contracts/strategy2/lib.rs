@@ -28,9 +28,10 @@ mod strategy2 {
     impl Strategy2 {
         /// Constructor
         #[ink(constructor)]
-        pub fn new(master_dao: AccountId) -> Self {
+        pub fn new(master_dao: AccountId, factor: u128) -> Self {
             ink_lang::utils::initialize_contract(|instance: &mut Self| {
                 instance.master_dao = master_dao;
+                instance.factor = factor;
             })
         }
     }

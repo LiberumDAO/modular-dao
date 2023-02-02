@@ -4,7 +4,7 @@
 mod strategy1 {
     use ink_storage::{traits::SpreadAllocate};
     use openbrush::traits::String;
-
+    use openbrush::contracts::traits::psp22::*;
     use modular_dao::traits::{strategy::*};
     
 
@@ -13,6 +13,7 @@ mod strategy1 {
     pub struct Strategy1 {
         master_dao: AccountId,
         factor: u128,
+        gov_token: AccountId,
     }
 
     ///trait implementation
@@ -22,16 +23,18 @@ mod strategy1 {
             //the logic could include getting some values from MasterDao contract
             //checking balance of a particular token of the `address`
 
-            //just dummy calculation 
-            Ok(10 * self.factor)
+            //just dummy calculation  with some balance of PSP22 token
+            Ok(PSP22Ref::balance_of(&self.gov_token,address) * self.factor)
         }
     }
     impl Strategy1 {
         /// Constructor
         #[ink(constructor)]
-        pub fn new(master_dao: AccountId) -> Self {
+        pub fn new(master_dao: AccountId, factor: u128, gov_token: AccountId) -> Self {
             ink_lang::utils::initialize_contract(|instance: &mut Self| {
                 instance.master_dao = master_dao;
+                instance.factor = factor;
+                instance.gov_token = gov_token;
             })
         }
     }
