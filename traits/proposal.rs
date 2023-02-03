@@ -43,18 +43,13 @@ pub enum ProposalError {
 
 pub type ProposalId = u32;
 
-#[derive(Encode, Decode, SpreadLayout, PackedLayout, SpreadAllocate, Default)]
+#[derive(Encode, Decode, SpreadLayout, PackedLayout, SpreadAllocate, Default, Clone, Copy)]
 #[cfg_attr(
     feature = "std",
-    derive(Debug, PartialEq, Eq, scale_info::TypeInfo, StorageLayout, Copy)
+    derive(Debug, PartialEq, Eq, scale_info::TypeInfo, StorageLayout)
 )]
 pub struct ProposalResult(pub u32, pub Balance, pub Balance);
 
-impl Clone for ProposalResult {
-    fn clone(&self) -> Self {
-        ProposalResult(self.0, self.1, self.2)
-    }
-}
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout)]
 #[cfg_attr(
