@@ -7,26 +7,26 @@ pub use crate::traits::dao_master::*;
 
 #[openbrush::upgradeable_storage(openbrush::storage_unique_key!(Data))]
 #[derive(Default,Debug)]
+///SC Data
 pub struct Data {
     pub name: String,
     pub strategies: Vec<AccountId>,
     pub proposal_types: Vec<AccountId>,
 }
-
+///Default implementation of the `modular_dao::traits::DaoMaster`
 impl<T: Storage<Data>> DaoMaster for T {
 
         default fn get_name(&self) -> String {
              self.data().name.clone()
         }
 
+        /// TODO: `only owner`
         default fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(),DaoError>  { 
-            //logic to add module
             self.data().strategies.push(strategy_address);
             Ok(())
         }
-
+        ///TODO: `only owner`
         default fn add_proposal_type(&mut self, proposal_address: AccountId) -> Result<(),DaoError>  { 
-            //logic to add module
             self.data().proposal_types.push(proposal_address);
             Ok(())
         }

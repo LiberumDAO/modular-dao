@@ -8,7 +8,7 @@ use scale::{Decode, Encode};
 use ink_prelude::vec::Vec;
 
 pub const ONE_MINUTE: u64 = 60 * 1000;
-
+///Proposal SC
 #[openbrush::trait_definition]
 pub trait Proposal {
     #[ink(message)]
@@ -18,16 +18,16 @@ pub trait Proposal {
         description: String,
         duration: u64,
     ) -> Result<(), ProposalError>;
-
+    ///Returns proposal data
     #[ink(message)]
     fn get_proposal(&self, id: ProposalId) -> Result<ProposalData, ProposalError>;
-
+    ///executes the proposal
     #[ink(message)]
     fn execute(&mut self, id: ProposalId) -> Result<ProposalResult, ProposalError>;
-
+    ///Allows user to vote for on the specified proposal
     #[ink(message)]
     fn vote(&mut self, id: ProposalId, vote: VoteType) -> Result<(), ProposalError>;
-
+    ///Returns `true` if `address` voted in any pending proposal
     #[ink(message)]
     fn in_active_proposal(&self, account: AccountId) -> bool;
 }
@@ -48,6 +48,7 @@ pub type ProposalId = u32;
     feature = "std",
     derive(Debug, PartialEq, Eq, scale_info::TypeInfo, StorageLayout)
 )]
+///Proposal result in a form (number of voters, For votes, Against votes)
 pub struct ProposalResult(pub u32, pub Balance, pub Balance);
 
 
@@ -86,7 +87,7 @@ pub struct Vote(pub AccountId, pub VoteType);
     feature = "std",
     derive(Debug, PartialEq, Eq, StorageLayout, scale_info::TypeInfo)
 )]
-
+///Struct representing a single proposal's data
 pub struct ProposalData {
     pub title: String,
     pub description: String,

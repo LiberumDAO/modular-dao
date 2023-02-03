@@ -4,7 +4,6 @@
 #[openbrush::contract]
 mod deposit_strategy {
     use ink_storage::{traits::SpreadAllocate};
-    use openbrush::contracts::traits::psp22::*;
     use modular_dao::traits::{strategy::*};
     use modular_dao::traits::deposit::DepositRef;
     
@@ -22,10 +21,11 @@ mod deposit_strategy {
     impl Strategy for DepositStrategy {
         #[ink(message)]
         fn get_vote_weight(&self, address: AccountId) -> Result<Balance, StrategyError> {
-            //the logic could include getting some values from MasterDao contract
-            //checking balance of a particular token of the `address`
+            // the logic could include getting some values from MasterDao contract
+            // checking balance of a particular token of the `address`
+            // basically, determines the "logic" of the strategy
 
-            //just dummy calculation  with some balance of PSP22 token
+            // just dummy calculation  with some balance of PSP22 token
             Ok(DepositRef::deposit_of(&self.deposit,address).unwrap_or_default() * self.factor)
         }
     }

@@ -14,7 +14,7 @@ mod deposit_contract {
         data: Data,
     }
 
-    ///implementing DaoMaster trait
+    ///implementing Deposit trait
     impl Deposit for DepositContract { }
 
     impl DepositContract {

@@ -3,7 +3,6 @@
 
 #[openbrush::contract]
 mod dao_contract {
-    use modular_dao::traits::proposal::*;
     use openbrush::traits::String;
     use ink_storage::traits::SpreadAllocate;
     use modular_dao::impls::dao_master::*;

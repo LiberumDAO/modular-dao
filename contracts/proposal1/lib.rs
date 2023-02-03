@@ -17,9 +17,8 @@ mod proposal1 {
         proposal_id: ProposalId,
     }
 
-    ///implementing DaoMaster trait
-    /// TODO: snapshot vote_weights (when creating proposal, or when proposal ends)
     impl Proposal for Proposal1 {
+        /// TODO: snapshot vote_weights (when creating proposal, or when proposal ends)
         #[ink(message)]
         fn propose(
             &mut self,
@@ -27,8 +26,8 @@ mod proposal1 {
             description: String,
             duration: u64,
         ) -> Result<(), ProposalError> {
-            //TODO: logic if caller is allowed to propose (for only checks if caller has any power)
-            //it could be part of voting strategy or seperate strategy
+            // TODO: logic if caller is allowed to propose (for only checks if caller has any power)
+            // it could be part of voting strategy or seperate strategy
             if DaoMasterRef::get_vote_weight(&self.master_dao, Self::env().caller())
                 .unwrap_or_default()
                 == 0

@@ -21,7 +21,7 @@ mod strategy2 {
             //the logic could include getting some values from MasterDao contract
             //checking balance of a particular token of the `address`
 
-            //just dummy calculation 
+            //just dummy calculation
             Ok(5 * self.factor)
         }
     }

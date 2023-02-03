@@ -2,13 +2,14 @@ use ink_env::AccountId;
 use openbrush::traits::Balance;
 use scale::{Decode, Encode};
 
-
+///Strategy SC
 #[openbrush::trait_definition]
 pub trait Strategy {
+    ///Returns c
     #[ink(message)]
     fn get_vote_weight(&self, voter_address: AccountId) -> Result<Balance,StrategyError>;//StrategyError>;
 }
-
+///Returns cumulative vote weight of a given address 
 #[openbrush::wrapper]
 pub type StrategyRef = dyn Strategy;
 
