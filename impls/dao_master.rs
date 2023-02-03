@@ -1,4 +1,4 @@
-use openbrush::traits::{AccountId, String, Balance};
+use openbrush::traits::{AccountId, String, Balance, Storage};
 use ink_prelude::vec::Vec;
 use crate::traits::strategy::StrategyRef;
 pub use crate::traits::dao_master::*;
@@ -11,7 +11,7 @@ pub struct Data {
     pub strategies: Vec<AccountId>,
 }
 
-impl<T: openbrush::traits::Storage<Data>> DaoMaster for T {
+impl<T: Storage<Data>> DaoMaster for T {
 
         default fn get_name(&self) -> String {
              self.data().name.clone()

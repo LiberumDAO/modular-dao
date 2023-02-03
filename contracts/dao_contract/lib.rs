@@ -4,7 +4,7 @@
 #[openbrush::contract]
 mod dao_contract {
     use openbrush::traits::String;
-    use ink_storage::{traits::*};
+    use ink_storage::traits::SpreadAllocate;
     use modular_dao::impls::dao_master::*;
     use openbrush::traits::Storage;
 
