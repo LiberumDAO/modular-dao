@@ -13,6 +13,9 @@ pub trait DaoMaster {
     fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(),String>; //DaoError>;
 
     #[ink(message)]
+    fn add_proposal_type(&mut self, proposal_address: AccountId) -> Result<(),String>; //DaoError>;
+
+    #[ink(message)]
     fn get_vote_weight(&self, address: AccountId) -> Result<Balance,String>; //DaoError>;
 }
 
