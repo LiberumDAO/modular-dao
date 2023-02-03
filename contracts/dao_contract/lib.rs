@@ -3,6 +3,9 @@
 
 #[openbrush::contract]
 mod dao_contract {
+    use ink_prelude::vec::Vec;
+    use ink_storage::traits::*;
+    use modular_dao::traits::{dao_master::*, strategy::*};
     use openbrush::traits::String;
     use ink_storage::traits::SpreadAllocate;
     use modular_dao::impls::dao_master::*;
@@ -19,7 +22,6 @@ mod dao_contract {
     impl DaoMaster for DaoContract { }
 
     impl DaoContract {
-        
         #[ink(constructor)]
         pub fn new(name: String) -> Self {
             ink_lang::utils::initialize_contract(|instance: &mut Self| {
