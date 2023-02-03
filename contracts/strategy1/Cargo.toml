@@ -41,6 +41,10 @@ std = [
     "scale-info/std",
 
     # These dependencies
+    "modular_dao/std",
     "openbrush/std",
 ]
 ink-as-dependency = []
+
+[profile.dev]
+codegen-units = 16
