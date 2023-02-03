@@ -2,30 +2,30 @@
 #![feature(min_specialization)]
 
 #[openbrush::contract]
-mod dao_contract {
-    use modular_dao::traits::proposal::*;
-    use openbrush::traits::String;
+mod deposit_contract {
     use ink_storage::traits::SpreadAllocate;
-    use modular_dao::impls::dao_master::*;
+    use modular_dao::impls::deposit::*;
     use openbrush::traits::Storage;
 
     #[ink(storage)]
     #[derive(Default,SpreadAllocate, Storage)]
-    pub struct DaoContract {
+    pub struct DepositContract {
         #[storage_field]
         data: Data,
     }
 
     ///implementing DaoMaster trait
-    impl DaoMaster for DaoContract { }
+    impl Deposit for DepositContract { }
 
-    impl DaoContract {
+    impl DepositContract {
         #[ink(constructor)]
-        pub fn new(name: String) -> Self {
+        pub fn new(dao_master: AccountId, token_address: AccountId) -> Self {
             ink_lang::utils::initialize_contract(|instance: &mut Self| {
-                instance.data.name = String::from(name);
+                instance.data.dao_master = dao_master;
+                instance.data.token_address = token_address;
             })
         }
+
 
     }
 }

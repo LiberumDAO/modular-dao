@@ -64,4 +64,6 @@ members = [
 	"contracts/strategy1",
 	"contracts/strategy2",
 	"contracts/proposal1",
+	"contracts/deposit_strategy",
+	"contracts/deposit_contract",
 ]
