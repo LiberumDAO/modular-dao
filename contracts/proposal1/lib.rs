@@ -3,12 +3,12 @@
 
 #[openbrush::contract]
 mod proposal1 {
-    use ink_storage::{traits::*};
+    use ink_storage::traits::*;
     use modular_dao::impls::proposal::*;
     use openbrush::traits::Storage;
 
     #[ink(storage)]
-    #[derive(Default,SpreadAllocate, Storage)]
+    #[derive(Default, SpreadAllocate, Storage)]
     pub struct Proposal1 {
         #[storage_field]
         data: Data,

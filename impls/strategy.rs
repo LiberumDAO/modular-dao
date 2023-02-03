@@ -10,11 +10,11 @@ pub struct Data {
 }
 ///Default implementation of the `modular_dao::traits::DaoMaster`
 impl<T: Storage<Data>> Strategy for T {
-    default fn get_vote_weight(&self, address: AccountId) -> Result<Balance, StrategyError> {
+    default fn get_vote_weight(&self, _address: AccountId) -> Result<Balance, StrategyError> {
         // the logic could include getting some values from MasterDao contract
         // checking balance of a particular token of the `address`
         // basically, determines the "logic" of the strategy
 
-        Ok(1)
+        todo!()
     }
 }

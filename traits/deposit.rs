@@ -28,7 +28,7 @@ pub enum DepositError {
 }
 
 impl From<PSP22Error> for DepositError {
-    fn from(error: PSP22Error) -> Self {
+    fn from(_error: PSP22Error) -> Self {
         DepositError::SomeError
     }
 }
