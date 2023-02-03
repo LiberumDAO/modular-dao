@@ -3,9 +3,7 @@
 
 #[openbrush::contract]
 mod dao_contract {
-    use ink_prelude::vec::Vec;
-    use ink_storage::traits::*;
-    use modular_dao::traits::{dao_master::*, strategy::*};
+    use modular_dao::traits::dao_master::*;
     use openbrush::traits::String;
     use ink_storage::traits::SpreadAllocate;
     use modular_dao::impls::dao_master::*;

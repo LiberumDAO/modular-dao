@@ -4,7 +4,6 @@
 #[openbrush::contract]
 mod strategy2 {
     use ink_storage::{traits::SpreadAllocate};
-    use openbrush::traits::String;
     use modular_dao::traits::{strategy::*};
     
 
@@ -18,7 +17,7 @@ mod strategy2 {
     ///trait implementation
     impl Strategy for Strategy2 {
         #[ink(message)]
-        fn get_vote_weight(&self, address: AccountId) -> Result<Balance, String> { // StrategyError> {
+        fn get_vote_weight(&self, address: AccountId) -> Result<Balance, StrategyError> { // StrategyError> {
             //the logic could include getting some values from MasterDao contract
             //checking balance of a particular token of the `address`
 

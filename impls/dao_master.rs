@@ -9,6 +9,7 @@ pub use crate::traits::dao_master::*;
 pub struct Data {
     pub name: String,
     pub strategies: Vec<AccountId>,
+    pub proposal_types: Vec<AccountId>,
 }
 
 impl<T: Storage<Data>> DaoMaster for T {
@@ -17,13 +18,19 @@ impl<T: Storage<Data>> DaoMaster for T {
              self.data().name.clone()
         }
 
-        default fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(),String>  { //DaoError> {
+        default fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(),DaoError>  { 
             //logic to add module
             self.data().strategies.push(strategy_address);
             Ok(())
         }
 
-        default fn get_vote_weight(&self, address: AccountId) -> Result<Balance,String> { // //DaoError> {
+        default fn add_proposal_type(&mut self, proposal_address: AccountId) -> Result<(),DaoError>  { 
+            //logic to add module
+            self.data().proposal_types.push(proposal_address);
+            Ok(())
+        }
+
+        default fn get_vote_weight(&self, address: AccountId) -> Result<Balance,DaoError> { 
             //logic to add module
             let mut total: Balance = 0;
             for strategy in &self.data().strategies {

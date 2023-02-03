@@ -25,18 +25,18 @@ mod proposal1 {
             title: String,
             description: String,
             duration: u64,
-        ) -> Result<(), String> {
+        ) -> Result<(), ProposalError> {
             //TODO: logic if caller is allowed to propose (for only checks if caller has any power)
             //it could be part of voting strategy or seperate strategy
             if DaoMasterRef::get_vote_weight(&self.master_dao, Self::env().caller())
                 .unwrap_or_default()
                 == 0
             {
-                return Err(String::from("ERROR"));
+                return Err(ProposalError::SomeError);
             }
 
             if duration == 0 || duration > 60 * ONE_MINUTE {
-                return Err(String::from("ERROR"));
+                return Err(ProposalError::SomeError);
             }
 
             let now = Self::env().block_timestamp();
@@ -57,40 +57,38 @@ mod proposal1 {
         }
 
         #[ink(message)]
-        fn get_proposal(&self, id: ProposalId) -> Result<ProposalData, String> {
-            self.proposals.get(id).ok_or(String::from("ERROR"))
+        fn get_proposal(&self, id: ProposalId) -> Result<ProposalData, ProposalError> {
+            self.proposals.get(id).ok_or(ProposalError::SomeError)
         }
 
         #[ink(message)]
-        fn vote(&mut self, id: ProposalId, vote: VoteType) -> Result<(), String> {
+        fn vote(&mut self, id: ProposalId, vote: VoteType) -> Result<(), ProposalError> {
             self.votes.insert((id, Self::env().caller()), &vote);
             Ok(())
         }
 
         #[ink(message)]
-        fn execute(&mut self, id: ProposalId) -> Result<ProposalResult, String> {
-            let proposal = self.proposals.get(&id).ok_or(String::from("ERROR"))?;
+        fn execute(&mut self, id: ProposalId) -> Result<ProposalResult, ProposalError> {
+            let proposal = self.proposals.get(&id).ok_or(ProposalError::SomeError)?;
             if proposal.result.is_some() {
-                return Err(String::from("ERROR"));
+                return Err(ProposalError::SomeError);
             }
 
             let now = Self::env().block_timestamp();
 
             if now < proposal.vote_end {
-                return Err(String::from("ERROR"));
+                return Err(ProposalError::SomeError);
             }
 
             let mut for_votes = 0;
             let mut against_votes = 0;
             for voter in &proposal.voters {
-                if self.votes.get((id, voter)).unwrap_or_default() == VoteType::For {
-                    for_votes = for_votes
-                        + DaoMasterRef::get_vote_weight(&self.master_dao, *voter)
-                            .unwrap_or_default();
-                } else if self.votes.get((id, voter)).unwrap_or_default() == VoteType::Against {
-                    against_votes = against_votes
-                        + DaoMasterRef::get_vote_weight(&self.master_dao, *voter)
-                            .unwrap_or_default();
+                let vote_weight = DaoMasterRef::get_vote_weight(&self.master_dao, *voter)
+                .unwrap_or_default();
+                match self.votes.get((id, voter)).unwrap_or_default() {
+                    VoteType::For => {for_votes = for_votes + vote_weight},
+                    VoteType::Against => {against_votes = against_votes + vote_weight},
+                    _ => ()
                 }
             }
 
@@ -99,11 +97,11 @@ mod proposal1 {
                 for_votes,
                 against_votes,
             );
-            self.proposals.get(&id).ok_or(String::from("ERROR"))?;
+            self.proposals.get(&id).ok_or(ProposalError::SomeError)?;
             self.proposals.insert(
                 id,
                 &ProposalData {
-                    result: Some(result),
+                    result: Some(result.clone()),
                     ..proposal
                 },
             );
