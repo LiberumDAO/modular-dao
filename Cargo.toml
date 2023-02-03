@@ -60,10 +60,5 @@ codegen-units = 16
 
 [workspace]
 members = [
-	"contracts/dao_contract",
-	"contracts/strategy1",
-	"contracts/strategy2",
-	"contracts/proposal1",
-	"contracts/deposit_strategy",
-	"contracts/deposit_contract",
+	"contracts/*"
 ]
