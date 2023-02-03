@@ -18,6 +18,7 @@ mod proposal1 {
     }
 
     ///implementing DaoMaster trait
+    /// TODO: snapshot vote_weights (when creating proposal, or when proposal ends)
     impl Proposal for Proposal1 {
         #[ink(message)]
         fn propose(
@@ -83,12 +84,12 @@ mod proposal1 {
             let mut for_votes = 0;
             let mut against_votes = 0;
             for voter in &proposal.voters {
-                let vote_weight = DaoMasterRef::get_vote_weight(&self.master_dao, *voter)
-                .unwrap_or_default();
+                let vote_weight =
+                    DaoMasterRef::get_vote_weight(&self.master_dao, *voter).unwrap_or_default();
                 match self.votes.get((id, voter)).unwrap_or_default() {
-                    VoteType::For => {for_votes = for_votes + vote_weight},
-                    VoteType::Against => {against_votes = against_votes + vote_weight},
-                    _ => ()
+                    VoteType::For => for_votes = for_votes + vote_weight,
+                    VoteType::Against => against_votes = against_votes + vote_weight,
+                    _ => (),
                 }
             }
 
@@ -110,6 +111,16 @@ mod proposal1 {
 
             Ok(result)
         }
+
+        #[ink(message)]
+        fn in_active_proposal(&self, account: AccountId) -> bool {
+
+            let now = Self::env().block_timestamp();
+            for i in 0..self.proposal_id {
+                if now < self.proposals.get(i).unwrap().vote_end && self.proposals.get(i).unwrap().voters.contains(&account) { return true };
+            }
+            false
+        }
     }
 
     impl Proposal1 {
@@ -119,5 +130,6 @@ mod proposal1 {
                 instance.master_dao = master_dao;
             })
         }
+
     }
 }

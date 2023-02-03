@@ -2,7 +2,7 @@ use ink_env::AccountId;
 
 use openbrush::traits::{Balance, String, Timestamp};
 
-use ink_storage::{traits::*};
+use ink_storage::traits::*;
 use scale::{Decode, Encode};
 
 use ink_prelude::vec::Vec;
@@ -12,7 +12,12 @@ pub const ONE_MINUTE: u64 = 60 * 1000;
 #[openbrush::trait_definition]
 pub trait Proposal {
     #[ink(message)]
-    fn propose(&mut self, title: String, description: String, duration: u64) -> Result<(), ProposalError>;
+    fn propose(
+        &mut self,
+        title: String,
+        description: String,
+        duration: u64,
+    ) -> Result<(), ProposalError>;
 
     #[ink(message)]
     fn get_proposal(&self, id: ProposalId) -> Result<ProposalData, ProposalError>;
@@ -22,6 +27,9 @@ pub trait Proposal {
 
     #[ink(message)]
     fn vote(&mut self, id: ProposalId, vote: VoteType) -> Result<(), ProposalError>;
+
+    #[ink(message)]
+    fn in_active_proposal(&self, account: AccountId) -> bool;
 }
 
 #[openbrush::wrapper]
@@ -44,10 +52,9 @@ pub struct ProposalResult(pub u32, pub Balance, pub Balance);
 
 impl Clone for ProposalResult {
     fn clone(&self) -> Self {
-        ProposalResult(self.0,self.1,self.2,)
+        ProposalResult(self.0, self.1, self.2)
     }
 }
-
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout)]
 #[cfg_attr(
@@ -79,7 +86,7 @@ impl Default for VoteType {
 )]
 pub struct Vote(pub AccountId, pub VoteType);
 
-#[derive(Encode, Decode, SpreadLayout, PackedLayout, SpreadAllocate, Default)]
+#[derive(Encode, Decode, SpreadLayout, PackedLayout, SpreadAllocate, Default, Clone)]
 #[cfg_attr(
     feature = "std",
     derive(Debug, PartialEq, Eq, StorageLayout, scale_info::TypeInfo)

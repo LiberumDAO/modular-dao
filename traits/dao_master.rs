@@ -17,6 +17,9 @@ pub trait DaoMaster {
 
     #[ink(message)]
     fn get_vote_weight(&self, address: AccountId) -> Result<Balance,DaoError>; //DaoError>;
+    
+    #[ink(message)]
+    fn in_active_proposal(&self, address: AccountId) -> bool ;
 }
 
 #[openbrush::wrapper]
