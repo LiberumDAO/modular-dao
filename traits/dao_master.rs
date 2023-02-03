@@ -10,10 +10,13 @@ pub trait DaoMaster {
     fn get_name(&self) -> String;
 
     #[ink(message)]
-    fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(),String>; //DaoError>;
+    fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(),DaoError>; //DaoError>;
 
     #[ink(message)]
-    fn get_vote_weight(&self, address: AccountId) -> Result<Balance,String>; //DaoError>;
+    fn add_proposal_type(&mut self, proposal_address: AccountId) -> Result<(),DaoError>; //DaoError>;
+
+    #[ink(message)]
+    fn get_vote_weight(&self, address: AccountId) -> Result<Balance,DaoError>; //DaoError>;
 }
 
 #[openbrush::wrapper]

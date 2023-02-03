@@ -1,12 +1,12 @@
 use ink_env::AccountId;
-use openbrush::traits::{Balance, String};
+use openbrush::traits::Balance;
 use scale::{Decode, Encode};
 
 
 #[openbrush::trait_definition]
 pub trait Strategy {
     #[ink(message)]
-    fn get_vote_weight(&self, voter_address: AccountId) -> Result<Balance,String>;//StrategyError>;
+    fn get_vote_weight(&self, voter_address: AccountId) -> Result<Balance,StrategyError>;//StrategyError>;
 }
 
 #[openbrush::wrapper]
