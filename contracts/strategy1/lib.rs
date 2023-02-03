@@ -3,15 +3,16 @@
 
 #[openbrush::contract]
 mod strategy1 {
-    use ink_storage::{traits::SpreadAllocate};
+    use ink_storage::traits::SpreadAllocate;
     use openbrush::contracts::traits::psp22::*;
-    use modular_dao::traits::{strategy::*};
-    
+    use modular_dao::impls::strategy::*;
+    use openbrush::traits::Storage;
 
     #[ink(storage)]
-    #[derive(SpreadAllocate)]
+    #[derive(Default,SpreadAllocate, Storage)]
     pub struct Strategy1 {
-        master_dao: AccountId,
+        #[storage_field]
+        data: Data,
         factor: u128,
         gov_token: AccountId,
     }
@@ -32,7 +33,7 @@ mod strategy1 {
         #[ink(constructor)]
         pub fn new(master_dao: AccountId, factor: u128, gov_token: AccountId) -> Self {
             ink_lang::utils::initialize_contract(|instance: &mut Self| {
-                instance.master_dao = master_dao;
+                instance.data.master_dao = master_dao;
                 instance.factor = factor;
                 instance.gov_token = gov_token;
             })
