@@ -21,21 +21,23 @@ mod dao {
     impl Dao for DaoContract {}
 
     impl DaoContract {
+        /// Creates new instance of DAO contract
+        /// Grants `FOUNDER` role to all passed adresses in `founders` parameter
+        /// `caller` is FOUNDER by default
         #[ink(constructor)]
         pub fn new(founders: Vec<AccountId>) -> Self {
             ink_lang::utils::initialize_contract(|instance: &mut Self| {
                 let caller = instance.env().caller();
                 instance._init_with_admin(caller); // <- not sure what it does, couldn't find docs about it
-                if founders.contains(&caller) {
-                    for i in 0..founders.len() {
-                        instance
-                        .grant_role(FOUNDER, *founders.get(i).unwrap())
-                        .expect("Should grant the role");
-                    }
-                } else {
+                for i in 0..founders.len() {
                     instance
-                        .grant_role(FOUNDER, caller)
-                        .expect("Should grant the role");
+                    .grant_role(FOUNDER, *founders.get(i).unwrap())
+                    .expect("Should grant the role");
+                }
+                if !instance.access.has_role(FOUNDER,caller) {
+                    instance
+                    .grant_role(FOUNDER, caller)
+                    .expect("Should grant the role");
                 }
             })
         }
