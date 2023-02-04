@@ -4,6 +4,7 @@
 #[openbrush::contract]
 mod dao {
     use ink_storage::traits::SpreadAllocate;
+    use ink_prelude::vec::Vec;
     use modular_dao::impls::dao::{self, FOUNDER};
     use modular_dao::traits::dao::*;
     use openbrush::{contracts::access_control::*, traits::Storage};
