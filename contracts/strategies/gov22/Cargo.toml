@@ -1,5 +1,5 @@
 [package]
-name = "strategy"
+name = "gov22"
 version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2021"
@@ -18,9 +18,9 @@ scale-info = { version = "2", default-features = false, features = ["derive"], o
 
 # These dependencies
 openbrush = { git = "https://github.com/Supercolony-net/openbrush-contracts", default-features = false, features = ["psp22", "psp34", "ownable", "pausable", "access_control"] }
-modular_dao = {path = "../..", default-features = false }
+modular_dao = {path = "../../..", default-features = false }
 [lib]
-name = "strategy"
+name = "gov22"
 path = "lib.rs"
 crate-type = [
 	# Used for normal contract Wasm blobs.

@@ -1,7 +1,7 @@
 **Draft of the modular-dao's smart contracts.**
 
 # TODOs:
-## General
+## General:
 + switch to ink! 4.0-rc
 ## Strategies:
 + define 2 - 3 functions for vote weight computation e.i. charmonic mean, simple factor multiplication, log function etc.

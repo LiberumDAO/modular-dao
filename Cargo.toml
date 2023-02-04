@@ -58,5 +58,6 @@ ink-as-dependency = []
 
 [workspace]
 members = [
-	"contracts/*"
+	"contracts/*",
+	"contracts/strategies/*"
 ]

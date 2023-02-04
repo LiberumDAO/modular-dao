@@ -13,10 +13,15 @@ pub const ONE_MINUTE: u64 = 60 * 1000;
 #[derive(Default, Debug)]
 ///Data of the Proposal SC
 pub struct Data {
+    ///
     pub master_dao: AccountId,
+    ///
     pub proposals: Mapping<ProposalId, ProposalData>,
+    ///
     pub votes: Mapping<(ProposalId, AccountId), VoteType>,
+    ///
     pub proposal_id: ProposalId,
+
 }
 ///Default implementation of `modular_dao::traits::Proposal` SC
 impl<T: Storage<Data>> Proposal for T {

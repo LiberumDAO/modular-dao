@@ -98,3 +98,4 @@ pub struct ProposalData {
     pub voters: Vec<AccountId>,
     pub result: Option<ProposalResult>,
 }
+
