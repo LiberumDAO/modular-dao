@@ -1,8 +1,5 @@
-pub mod role_dao;
-
-use ink_env::AccountId;
-
 use openbrush::contracts::access_control::*;
+use openbrush::traits::AccountId;
 use scale::{Decode, Encode};
 
 ///the master dao smart contract
@@ -23,7 +20,7 @@ pub trait Dao {
 }
 
 #[openbrush::wrapper]
-pub type DaoRef = dyn Dao + AccessControl;
+pub type DaoContractRef = dyn Dao + AccessControl;
 
 ///TODO appropriate errors
 #[derive(Debug, PartialEq, Eq, Encode, Decode)]
