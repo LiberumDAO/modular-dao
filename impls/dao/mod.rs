@@ -1,12 +1,16 @@
-pub mod roles_dao;
-use crate::traits::{proposal::ProposalRef, strategy::StrategyRef, dao};
-use ink_prelude::vec::Vec;
-use openbrush::traits::{AccountId, Balance, Storage};
-use openbrush::{contracts::access_control::*, modifiers, traits::OccupiedStorage};
-pub const FOUNDER: RoleType = ink_lang::selector_id!("FOUNDER");
+use crate::traits::{dao, proposal::ProposalRef, strategy::StrategyRef};
+use ink::prelude::vec::Vec;
+use openbrush::traits::{AccountId, Balance, OccupiedStorage, Storage};
+use openbrush::{contracts::access_control::*, modifiers};
 
-#[openbrush::upgradeable_storage(openbrush::storage_unique_key!(Data))]
-#[derive(Default, Debug)]
+use ink::storage::traits::{ManualKey, ResolverKey, Storable, StorableHint};
+
+pub const FOUNDER: RoleType = ink::selector_id!("FOUNDER");
+
+pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
+
+#[derive(Debug)]
+#[openbrush::upgradeable_storage(STORAGE_KEY)]
 ///SC Data
 pub struct Data {
     ///stores `AccountId` of integrated strategies
@@ -15,12 +19,30 @@ pub struct Data {
     pub proposal_types: Vec<AccountId>,
 }
 
+impl Default for Data {
+    fn default() -> Self {
+        Self {
+            strategies: Default::default(),
+            proposal_types: Default::default(),
+        }
+    }
+}
+
 ///Default implementation of the `modular_dao::traits::Dao`
 impl<T, M> dao::Dao for T
 where
     T: Storage<Data> + Storage<access_control::Data<M>>,
     T: OccupiedStorage<{ access_control::STORAGE_KEY }, WithData = access_control::Data<M>>,
     M: members::MembersManager,
+    M: Storable
+        + StorableHint<ManualKey<{ access_control::STORAGE_KEY }>>
+        + StorableHint<
+            ResolverKey<
+                <M as StorableHint<ManualKey<{ access_control::STORAGE_KEY }>>>::PreferredKey,
+                ManualKey<3218979580, ManualKey<{ access_control::STORAGE_KEY }>>,
+            >,
+            Type = M,
+        >,
 {
     ///allows Founders to add strategy to the DAO
     #[modifiers(only_role(FOUNDER))]

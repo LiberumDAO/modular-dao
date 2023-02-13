@@ -2,26 +2,25 @@
 #![feature(min_specialization)]
 
 #[openbrush::contract]
-mod proposal {
-    use ink_storage::traits::*;
+mod proposal_event {
     use modular_dao::impls::proposal::*;
     use openbrush::traits::Storage;
 
     #[ink(storage)]
-    #[derive(Default, SpreadAllocate, Storage)]
-    pub struct ProposalContract {
+    #[derive(Default, Storage)]
+    pub struct ProposalEvent {
         #[storage_field]
         data: Data,
     }
 
-    impl Proposal for ProposalContract {}
+    impl Proposal for ProposalEvent {}
 
-    impl ProposalContract {
+    impl ProposalEvent {
         #[ink(constructor)]
         pub fn new(master_dao: AccountId) -> Self {
-            ink_lang::utils::initialize_contract(|instance: &mut Self| {
-                instance.data.master_dao = master_dao;
-            })
+            let mut instance = Self::default();
+            instance.data.master_dao = master_dao;
+            instance
         }
     }
 }

@@ -1,8 +1,4 @@
-pub mod gov22;
-pub mod gov34;
-pub mod gov37;
-pub mod whitelist;
-use ink_env::AccountId;
+use openbrush::traits::AccountId;
 use openbrush::traits::Balance;
 use scale::{Decode, Encode};
 
