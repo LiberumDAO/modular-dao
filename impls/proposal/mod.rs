@@ -7,6 +7,8 @@ use openbrush::{
 
 use ink::prelude::vec::Vec;
 
+use super::dao::MEMBER;
+
 pub const ONE_MINUTE: u64 = 60 * 1000;
 
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
@@ -46,7 +48,7 @@ impl<T: Storage<Data>> Proposal for T {
         // it could be part of voting strategy or seperate strategy
         if DaoContractRef::get_vote_weight(&self.data().master_dao, Self::env().caller())
             .unwrap_or_default()
-            == 0
+            .is_none()
         {
             return Err(Error::SomeError);
         }
@@ -64,9 +66,10 @@ impl<T: Storage<Data>> Proposal for T {
             voters: Vec::new(),
             result: None,
             quorum,
-            account_to,
             private_voting,
-            executed: false,
+            status: Status::Active,
+            account_to,
+            amount: Default::default(),
         };
 
         let id = self.data().proposal_id;
@@ -82,41 +85,59 @@ impl<T: Storage<Data>> Proposal for T {
 
     default fn count_votes(&mut self, id: ProposalId) -> Result<ProposalResult, Error> {
         let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+        //check if there's already some result
         if proposal.result.is_some() {
             return Err(Error::SomeError);
         }
+        //check if proposal time passed
         let now = Self::env().block_timestamp();
-
         if now < proposal.vote_end {
             return Err(Error::SomeError);
         }
 
         let mut for_votes = 0;
         let mut against_votes = 0;
+        let mut abstain_votes = 0;
+        let mut vote_no = 0;
         if proposal.private_voting {
             todo!()
+
             // get result from private-voting module and
-            // update self.result
+            // check quorum
+            // update proposal.status
+            // update proposal.result
         } else {
             for voter in &proposal.voters {
                 let vote_weight = DaoContractRef::get_vote_weight(&self.data().master_dao, *voter)
                     .unwrap_or_default();
-                match self.data().votes.get(&(id, *voter)).unwrap_or_default() {
-                    VoteType::For => for_votes = for_votes + vote_weight,
-                    VoteType::Against => against_votes = against_votes + vote_weight,
-                    _ => (),
+                if vote_weight.is_some() {
+                    match self.data().votes.get(&(id, *voter)).unwrap_or_default() {
+                        VoteType::For => for_votes = for_votes + vote_weight.unwrap_or_default(),
+                        VoteType::Against => {
+                            against_votes = against_votes + vote_weight.unwrap_or_default()
+                        }
+                        _ => abstain_votes = abstain_votes + vote_weight.unwrap_or_default(),
+                    }
+                    vote_no += 1;
                 }
             }
-            let result: ProposalResult = ProposalResult(
-                proposal.voters.len().try_into().unwrap_or_default(),
-                for_votes,
-                against_votes,
-            );
-            self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+            let mut new_status = Status::Pending;
+            let result: ProposalResult = ProposalResult(abstain_votes, for_votes, against_votes);
+            //check quorum
+            if proposal.quorum < vote_no as u32 {
+                new_status = Status::Rejected;
+            }
+
+            //check if rejected
+            if result.1 < result.2 {
+                new_status = Status::Rejected;
+            }
+
             self.data().proposals.insert(
                 &id,
                 &ProposalData {
                     result: Some(result.clone()),
+                    status: new_status,
                     ..proposal
                 },
             );
@@ -126,36 +147,39 @@ impl<T: Storage<Data>> Proposal for T {
     ///executes the proposal
     default fn execute(&mut self, id: ProposalId) -> Result<(), Error> {
         let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
-        if proposal.result.is_none() {
-            return Err(Error::SomeError);
+
+        if proposal.status == Status::Rejected {
+            self.data().proposals.insert(
+                &id,
+                &ProposalData {
+                    status: Status::Archived,
+                    ..proposal
+                },
+            );
+            return Ok(());
         }
 
-        if proposal.executed {
-            return Err(Error::SomeError);
-        }
-
-        let now = Self::env().block_timestamp();
-
-        if now < proposal.vote_end {
-            return Err(Error::SomeError);
-        }
-
-        if proposal.quorum < proposal.voters.len() as u32 {
+        if proposal.status != Status::Pending {
             return Err(Error::SomeError);
         }
 
         //TODO: emit appropriate event
+        //ATM it's not possible to have shared event definition across smart contracts
         todo!()
-        
     }
     ///Allows user to vote for on the specified proposal
     default fn vote(&mut self, id: ProposalId, vote: VoteType) -> Result<(), Error> {
-        let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
-        if proposal.result.is_none() {
+        let vote_weight =
+            DaoContractRef::get_vote_weight(&self.data().master_dao, Self::env().caller())
+                .unwrap_or_default();
+        //check if caller has right to vote
+        if vote_weight.is_none() {
             return Err(Error::SomeError);
         }
 
-        if proposal.executed {
+        let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+
+        if proposal.status != Status::Active {
             return Err(Error::SomeError);
         }
 
@@ -165,12 +189,33 @@ impl<T: Storage<Data>> Proposal for T {
             return Err(Error::SomeError);
         }
         if proposal.private_voting {
-            //TODO: private voting
-            todo!()
-        } else {
-            self.data().votes.insert(&(id, Self::env().caller()), &vote);
-            Ok(())
+            return Err(Error::SomeError);
         }
+        self.data().votes.insert(&(id, Self::env().caller()), &vote);
+        Ok(())
+    }
+    ///
+    default fn vote_private(
+        &mut self,
+        id: ProposalId,
+        _vote: VoteType,
+        _secret: String,
+    ) -> Result<(), Error> {
+        let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+
+        if proposal.status != Status::Active {
+            return Err(Error::SomeError);
+        }
+
+        let now = Self::env().block_timestamp();
+
+        if now < proposal.vote_end {
+            return Err(Error::SomeError);
+        }
+        if !proposal.private_voting {
+            return Err(Error::SomeError);
+        }
+        todo!()
     }
     ///Returns `true` if `address` voted in any pending proposal
     default fn in_active_proposal(&self, account: AccountId) -> bool {
@@ -189,5 +234,40 @@ impl<T: Storage<Data>> Proposal for T {
             };
         }
         false
+    }
+    ///Allows to "liberum veto" a proposal
+    default fn liberum_veto(&mut self, id: ProposalId) -> Result<(), Error> {
+        if DaoContractRef::liberum_veto_allowed(&self.data::<Data>().master_dao) {
+            if DaoContractRef::has_role(
+                &self.data::<Data>().master_dao,
+                MEMBER,             //only MEMBERs can veto, could be changed to strategy or something
+                Self::env().caller(),
+            ) {
+                
+                let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+                
+                if proposal.status != Status::Active {
+                    return Err(Error::SomeError);
+                }
+
+                let now = Self::env().block_timestamp();
+
+                if now < proposal.vote_end {
+                    return Err(Error::SomeError);
+                }
+                self.data().proposals.insert(
+                    &id,
+                    &ProposalData {
+                        status: Status::Rejected,
+                        ..proposal
+                    },
+                );
+                Ok(())
+            } else {
+                return Err(Error::SomeError);
+            }
+        } else {
+            return Err(Error::SomeError);
+        }
     }
 }

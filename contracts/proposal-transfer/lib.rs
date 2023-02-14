@@ -2,11 +2,11 @@
 #![feature(min_specialization)]
 
 #[openbrush::contract]
-mod proposal_event {
+mod proposal_transfer {
+    use ink::codegen::EmitEvent;
     use modular_dao::impls::proposal::*;
     use openbrush::traits::DefaultEnv;
     use openbrush::traits::Storage;
-    use ink::codegen::EmitEvent;
 
     #[ink(storage)]
     #[derive(Default, Storage)]
@@ -35,13 +35,27 @@ mod proposal_event {
                 return Err(Error::SomeError);
             }
 
-            //TODO: emit appropriate event
-            //ATM it's not possible to have shared event definition across smart contracts
+            if Self::env().balance() < proposal.amount {
+                return Err(Error::SomeError)
+            }
+
+            Self::env()
+                .transfer(proposal.account_to, proposal.amount)
+                .map_err(|_| Error::SomeError)?;
+            
+            self.data.proposals.insert(
+                &id,
+                &ProposalData {
+                    status: Status::Executed,
+                    ..proposal
+                },
+            );
             Self::env().emit_event(Executed {
                 proposal_id: Some(id),
                 executor: Some(Self::env().caller()),
+                account_to: Some(proposal.account_to),
+                amount: Some(proposal.amount),
             });
-
             Ok(())
         }
     }
@@ -62,5 +76,11 @@ mod proposal_event {
 
         #[ink(topic)]
         executor: Option<AccountId>,
+
+        #[ink(topic)]
+        account_to: Option<AccountId>,
+
+        amount: Option<Balance>,
+
     }
 }

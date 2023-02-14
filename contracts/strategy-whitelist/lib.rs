@@ -3,8 +3,9 @@
 
 #[openbrush::contract]
 mod strategy_whitelist {
-    use openbrush::contracts::traits::psp22::PSP22Ref;
+    use openbrush::contracts::traits::access_control::*;
     use modular_dao::impls::strategy;
+    use modular_dao::impls::dao::MEMBER;
     use openbrush::traits::Storage;
 
     #[ink(storage)]
@@ -30,12 +31,15 @@ mod strategy_whitelist {
     ///trait implementation
     impl strategy::Strategy for Whitelist {
         #[ink(message)]
-        fn get_vote_weight(&self, address: AccountId) -> Result<Balance, strategy::Error> {
+        fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, strategy::Error> {
             //the logic could include getting some values from MasterDao contract
             //checking balance of a particular token of the `address`
 
             //just dummy calculation  with some balance of PSP22 token
-            Ok(PSP22Ref::balance_of(&self.gov_token,address) * self.factor)
+            if AccessControlRef::has_role(&self.data.master_dao, MEMBER,address) {
+                return Ok(Some(1))
+            }
+            Ok(None)
         }
     }
     impl Whitelist {

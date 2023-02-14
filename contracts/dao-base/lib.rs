@@ -4,7 +4,7 @@
 #[openbrush::contract]
 mod dao_base {
 
-    use modular_dao::impls::dao::{self, FOUNDER};
+    use modular_dao::impls::dao::{self, FOUNDER, MEMBER};
     use modular_dao::traits::dao::*;
     use openbrush::{contracts::access_control::*, traits::Storage};
     use ink::prelude::vec::Vec;
@@ -23,17 +23,26 @@ mod dao_base {
 
     impl DaoContract {
         #[ink(constructor)]
-        pub fn new(founders: Vec<AccountId>) -> Self {
+        pub fn new(founders: Vec<AccountId>, private_voting: bool, liberum_veto: bool) -> Self {
             let mut instance = Self::default();
+            instance.dao.private_voting = private_voting;
+            instance.dao.liberum_veto = liberum_veto;
+
             let caller = instance.env().caller();
             instance._init_with_admin(caller);
             instance
                 .grant_role(FOUNDER, caller)
                 .expect("Should grant the role");
+            instance
+                .grant_role(MEMBER, caller)
+                .expect("Should grant the role");
             for i in 0..founders.len() {
                 if *founders.get(i).unwrap() != caller {
                     instance
                         .grant_role(FOUNDER, *founders.get(i).unwrap())
+                        .expect("Should grant the role");
+                    instance
+                        .grant_role(MEMBER, *founders.get(i).unwrap())
                         .expect("Should grant the role");
                 }
             }

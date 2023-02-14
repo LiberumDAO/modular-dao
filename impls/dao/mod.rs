@@ -6,6 +6,7 @@ use openbrush::{contracts::access_control::*, modifiers};
 use ink::storage::traits::{ManualKey, ResolverKey, Storable, StorableHint};
 
 pub const FOUNDER: RoleType = ink::selector_id!("FOUNDER");
+pub const MEMBER: RoleType = ink::selector_id!("MEMBER");
 
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 
@@ -17,6 +18,10 @@ pub struct Data {
     pub strategies: Vec<AccountId>,
     ///stores `AccountId` of integrated proposal types
     pub proposal_types: Vec<AccountId>,
+    ///
+    pub private_voting: bool,
+    ///
+    pub liberum_veto: bool,
 }
 
 impl Default for Data {
@@ -24,6 +29,8 @@ impl Default for Data {
         Self {
             strategies: Default::default(),
             proposal_types: Default::default(),
+            private_voting: false,
+            liberum_veto: false,
         }
     }
 }
@@ -44,6 +51,15 @@ where
             Type = M,
         >,
 {
+
+    default fn private_voting_allowed(&self) -> bool{
+        self.data::<Data>().private_voting
+    }
+
+    default fn liberum_veto_allowed(&self) -> bool{
+        self.data::<Data>().liberum_veto
+    }
+
     ///allows Founders to add strategy to the DAO
     #[modifiers(only_role(FOUNDER))]
     default fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(), dao::Error> {
@@ -68,14 +84,18 @@ where
     }
     ///Calculates vote weight based on incorporated strategies at given moment
     ///Returns total vote weight for a given `AccountId`
-    default fn get_vote_weight(&self, address: AccountId) -> Result<u128, dao::Error> {
+    default fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, dao::Error> {
         //logic to add module
         let mut total: Balance = 0;
         for strategy in &self.data::<Data>().strategies {
             //read and sum the vote weight for each strategy by calling other contract that implement Strategy trait
-            total = total + StrategyRef::get_vote_weight(strategy, address).unwrap_or_default();
+            let strategy_weight = StrategyRef::get_vote_weight(strategy, address).unwrap_or_default();
+            if strategy_weight.is_none() {
+                return Ok(None)
+            }
+            total = total + strategy_weight.unwrap_or_default();
         }
-        Ok(total)
+        Ok(Some(total))
     }
     ///Returns `true` if given `AccountId` has voted on at least one
     /// unresolved proposal
@@ -88,4 +108,22 @@ where
         }
         false
     }
+
+    #[modifiers(only_role(FOUNDER))]
+    default fn grant_role_in_dao(&mut self, role: RoleType, account: AccountId) -> Result<(), AccessControlError> {
+        if self.data::<access_control::Data<M>>().members.has_role(role, &account) {
+            return Err(AccessControlError::RoleRedundant)
+        }
+        self.data::<access_control::Data<M>>().members.add(role, &account);
+        Ok(())
+    }
+    
+    #[modifiers(only_role(FOUNDER))]
+    default fn revoke_role_in_dao(&mut self, role: RoleType, account: AccountId) -> Result<(), AccessControlError> {
+        check_role(self, role, account)?;
+        self.data::<access_control::Data<M>>().members.remove(role, &account);
+        Ok(())
+    }
+
+    
 }

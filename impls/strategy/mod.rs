@@ -21,11 +21,10 @@ impl Default for Data {
 }
 
 impl<T: Storage<Data>> Strategy for T {
-    default fn get_vote_weight(&self, _address: AccountId) -> Result<u128, Error> {
+    default fn get_vote_weight(&self, _address: AccountId) -> Result<Option<u128>, Error> {
         // the logic could include getting some values from MasterDao contract
         // checking balance of a particular token of the `address`
         // basically, determines the "logic" of the strategy
-
-        Ok(1)
+        Ok(Some(1))
     }
 }

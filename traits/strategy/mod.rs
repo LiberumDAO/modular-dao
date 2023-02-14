@@ -1,5 +1,4 @@
 use openbrush::traits::AccountId;
-use openbrush::traits::Balance;
 use scale::{Decode, Encode};
 
 ///Strategy SC
@@ -7,7 +6,7 @@ use scale::{Decode, Encode};
 pub trait Strategy {
     ///Returns c
     #[ink(message)]
-    fn get_vote_weight(&self, voter_address: AccountId) -> Result<Balance,Error>;
+    fn get_vote_weight(&self, voter_address: AccountId) -> Result<Option<u128>,Error>;
 }
 ///Returns cumulative vote weight of a given address 
 #[openbrush::wrapper]
