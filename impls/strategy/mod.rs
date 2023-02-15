@@ -8,14 +8,12 @@ pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 ///SC Data
 pub struct Data {
     pub master_dao: AccountId,
-    pub token_address: AccountId,
 }
 
 impl Default for Data {
     fn default() -> Self {
         Self {
             master_dao: [0u8; 32].into(),
-            token_address: [0u8; 32].into(),
         }
     }
 }
