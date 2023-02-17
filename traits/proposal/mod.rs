@@ -50,7 +50,18 @@ pub type ProposalRef = dyn Proposal;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum Error {
-    SomeError,
+    NoVotePower,
+    ProposalTime,
+    ProposalNotExists,
+    VotesAlreadyCounted,
+    ProposalIsNotPending,
+    ProposalIsNotActive,
+    PrivateVoting,
+    NotAllowedToVeto,
+    DelegatedVote,
+    NotEnoughFunds,
+    TransferError,
+    //SomeError,
 }
 
 pub type ProposalId = u32;

@@ -80,7 +80,7 @@ where
             .delegators
             .contains(&Self::env().caller())
         {
-            return Err(dao::Error::SomeError);
+            return Err(dao::Error::VoteAlreadyDelegated);
         }
         self.data::<Data>().delegators.insert(&Self::env().caller(), &to_account);
         let mut new_vector = self
@@ -97,7 +97,7 @@ where
 
     default fn revoke_delegate_vote(&mut self) -> Result<(), dao::Error> {
         if !self.data::<Data>().delegators.contains(&Self::env().caller()) {
-            return Err(dao::Error::SomeError);
+            return Err(dao::Error::VoteNotDelegated);
         }
         let delegate = self.data::<Data>().delegators.get(&Self::env().caller()).unwrap();
         let mut new_vector = self.data::<Data>().delegation.get(&delegate).unwrap();

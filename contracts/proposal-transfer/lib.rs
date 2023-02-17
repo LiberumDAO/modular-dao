@@ -18,7 +18,7 @@ mod proposal_transfer {
     impl Proposal for ProposalEvent {
         #[ink(message)]
         fn execute(&mut self, id: ProposalId) -> Result<(), Error> {
-            let proposal = self.data.proposals.get(&id).ok_or(Error::SomeError)?;
+            let proposal = self.data.proposals.get(&id).ok_or(Error::ProposalNotExists)?;
 
             if proposal.status == Status::Rejected {
                 self.data.proposals.insert(
@@ -32,16 +32,16 @@ mod proposal_transfer {
             }
 
             if proposal.status != Status::Pending {
-                return Err(Error::SomeError);
+                return Err(Error::ProposalIsNotPending);
             }
 
             if Self::env().balance() < proposal.amount {
-                return Err(Error::SomeError)
+                return Err(Error::NotEnoughFunds)
             }
 
             Self::env()
                 .transfer(proposal.account_to, proposal.amount)
-                .map_err(|_| Error::SomeError)?;
+                .map_err(|_| Error::TransferError)?;
             
             self.data.proposals.insert(
                 &id,

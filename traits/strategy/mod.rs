@@ -15,5 +15,5 @@ pub type StrategyRef = dyn Strategy;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum Error {
-    SomeError
+    //SomeError
 }

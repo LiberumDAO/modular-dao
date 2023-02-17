@@ -46,7 +46,9 @@ pub enum Error {
     AccessControlError(AccessControlError),
     StrategyAlreadyIncorporated,
     ProposalTypeAlreadyIncorporated,
-    SomeError,
+    VoteAlreadyDelegated,
+    VoteNotDelegated,
+    //SomeError,
 }
 
 impl From<AccessControlError> for Error {

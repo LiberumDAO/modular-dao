@@ -50,11 +50,11 @@ impl<T: Storage<Data>> Proposal for T {
             .unwrap_or_default()
             .is_none()
         {
-            return Err(Error::SomeError);
+            return Err(Error::NoVotePower);
         }
 
         if duration == 0 || duration > 60 * ONE_MINUTE {
-            return Err(Error::SomeError);
+            return Err(Error::ProposalTime);
         }
 
         let now = Self::env().block_timestamp();
@@ -80,19 +80,19 @@ impl<T: Storage<Data>> Proposal for T {
     }
     ///Returns proposal data
     default fn get_proposal(&self, id: ProposalId) -> Result<ProposalData, Error> {
-        self.data().proposals.get(&id).ok_or(Error::SomeError)
+        self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)
     }
 
     default fn count_votes(&mut self, id: ProposalId) -> Result<ProposalResult, Error> {
-        let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
         //check if there's already some result
         if proposal.result.is_some() {
-            return Err(Error::SomeError);
+            return Err(Error::VotesAlreadyCounted);
         }
         //check if proposal time passed
         let now = Self::env().block_timestamp();
         if now < proposal.vote_end {
-            return Err(Error::SomeError);
+            return Err(Error::ProposalTime);
         }
 
         let mut for_votes = 0;
@@ -153,7 +153,7 @@ impl<T: Storage<Data>> Proposal for T {
     }
     ///executes the proposal
     default fn execute(&mut self, id: ProposalId) -> Result<(), Error> {
-        let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
 
         if proposal.status == Status::Rejected {
             self.data().proposals.insert(
@@ -167,7 +167,7 @@ impl<T: Storage<Data>> Proposal for T {
         }
 
         if proposal.status != Status::Pending {
-            return Err(Error::SomeError);
+            return Err(Error::ProposalIsNotPending);
         }
 
         //TODO: emit appropriate event
@@ -181,26 +181,26 @@ impl<T: Storage<Data>> Proposal for T {
                 .unwrap_or_default();
         //check if caller has right to vote
         if vote_weight.is_none() {
-            return Err(Error::SomeError);
+            return Err(Error::NoVotePower);
         }
         //check if has delegated vote
         if DaoContractRef::has_delegated(&self.data().master_dao, Self::env().caller()) {
-            return Err(Error::SomeError);
+            return Err(Error::DelegatedVote);
         }
 
-        let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
 
         if proposal.status != Status::Active {
-            return Err(Error::SomeError);
+            return Err(Error::ProposalIsNotActive);
         }
 
         let now = Self::env().block_timestamp();
 
         if now < proposal.vote_end {
-            return Err(Error::SomeError);
+            return Err(Error::ProposalTime);
         }
         if proposal.private_voting {
-            return Err(Error::SomeError);
+            return Err(Error::PrivateVoting);
         }
         self.data().votes.insert(&(id, Self::env().caller()), &vote);
         Ok(())
@@ -212,19 +212,19 @@ impl<T: Storage<Data>> Proposal for T {
         _vote: VoteType,
         _secret: String,
     ) -> Result<(), Error> {
-        let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
 
         if proposal.status != Status::Active {
-            return Err(Error::SomeError);
+            return Err(Error::ProposalIsNotActive);
         }
 
         let now = Self::env().block_timestamp();
 
         if now < proposal.vote_end {
-            return Err(Error::SomeError);
+            return Err(Error::ProposalTime);
         }
         if !proposal.private_voting {
-            return Err(Error::SomeError);
+            return Err(Error::PrivateVoting);
         }
         todo!()
     }
@@ -254,16 +254,16 @@ impl<T: Storage<Data>> Proposal for T {
                 MEMBER, //only MEMBERs can veto, could be changed to strategy or something
                 Self::env().caller(),
             ) {
-                let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
+                let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
 
                 if proposal.status != Status::Active {
-                    return Err(Error::SomeError);
+                    return Err(Error::ProposalIsNotActive);
                 }
 
                 let now = Self::env().block_timestamp();
 
                 if now < proposal.vote_end {
-                    return Err(Error::SomeError);
+                    return Err(Error::ProposalTime);
                 }
                 self.data().proposals.insert(
                     &id,
@@ -274,10 +274,10 @@ impl<T: Storage<Data>> Proposal for T {
                 );
                 Ok(())
             } else {
-                return Err(Error::SomeError);
+                return Err(Error::NotAllowedToVeto);
             }
         } else {
-            return Err(Error::SomeError);
+            return Err(Error::NotAllowedToVeto);
         }
     }
 }

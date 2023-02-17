@@ -18,7 +18,7 @@ mod proposal_event {
     impl Proposal for ProposalEvent {
         #[ink(message)]
         fn execute(&mut self, id: ProposalId) -> Result<(), Error> {
-            let proposal = self.data.proposals.get(&id).ok_or(Error::SomeError)?;
+            let proposal = self.data.proposals.get(&id).ok_or(Error::ProposalNotExists)?;
 
             if proposal.status == Status::Rejected {
                 self.data.proposals.insert(
@@ -32,7 +32,7 @@ mod proposal_event {
             }
 
             if proposal.status != Status::Pending {
-                return Err(Error::SomeError);
+                return Err(Error::ProposalIsNotPending);
             }
 
             //TODO: emit appropriate event

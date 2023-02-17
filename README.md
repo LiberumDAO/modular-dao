@@ -17,9 +17,11 @@
 * The "Master" DAO has add these modules by calling appropriate methods.
 <br /> 
 \* it is possible that a single contract implements all the traits i.e. master_dao, strategy, proposal. However, it such a case it is limited to have only "one kind" of each "module".
+<br />
 # TODOs:
 ## General
-- [x] switch to ink! 4.0-rc 
+- [x] switch to ink! 4.0-rc
+- [ ] tests
 
 ## DAO
 - [x] vote delegation system
