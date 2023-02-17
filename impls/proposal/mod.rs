@@ -108,19 +108,26 @@ impl<T: Storage<Data>> Proposal for T {
             // update proposal.result
         } else {
             for voter in &proposal.voters {
-                let vote_weight = DaoContractRef::get_vote_weight(&self.data().master_dao, *voter)
-                    .unwrap_or_default();
-                if vote_weight.is_some() {
-                    match self.data().votes.get(&(id, *voter)).unwrap_or_default() {
-                        VoteType::For => for_votes = for_votes + vote_weight.unwrap_or_default(),
-                        VoteType::Against => {
-                            against_votes = against_votes + vote_weight.unwrap_or_default()
+                if !DaoContractRef::has_delegated(&self.data().master_dao, *voter) {
+                    let vote_weight =
+                        DaoContractRef::get_vote_weight(&self.data().master_dao, *voter)
+                            .unwrap_or_default();
+                    if vote_weight.is_some() {
+                        match self.data().votes.get(&(id, *voter)).unwrap_or_default() {
+                            VoteType::For => {
+                                for_votes = for_votes + vote_weight.unwrap_or_default()
+                            }
+                            VoteType::Against => {
+                                against_votes = against_votes + vote_weight.unwrap_or_default()
+                            }
+                            _ => abstain_votes = abstain_votes + vote_weight.unwrap_or_default(),
                         }
-                        _ => abstain_votes = abstain_votes + vote_weight.unwrap_or_default(),
+                        vote_no += 1;
                     }
-                    vote_no += 1;
                 }
             }
+            //for delegator in DaoContractRef::get_delegators - calculate delegated votes
+            //if 
             let mut new_status = Status::Pending;
             let result: ProposalResult = ProposalResult(abstain_votes, for_votes, against_votes);
             //check quorum
@@ -174,6 +181,10 @@ impl<T: Storage<Data>> Proposal for T {
                 .unwrap_or_default();
         //check if caller has right to vote
         if vote_weight.is_none() {
+            return Err(Error::SomeError);
+        }
+        //check if has delegated vote
+        if DaoContractRef::has_delegated(&self.data().master_dao, Self::env().caller()) {
             return Err(Error::SomeError);
         }
 
@@ -240,12 +251,11 @@ impl<T: Storage<Data>> Proposal for T {
         if DaoContractRef::liberum_veto_allowed(&self.data::<Data>().master_dao) {
             if DaoContractRef::has_role(
                 &self.data::<Data>().master_dao,
-                MEMBER,             //only MEMBERs can veto, could be changed to strategy or something
+                MEMBER, //only MEMBERs can veto, could be changed to strategy or something
                 Self::env().caller(),
             ) {
-                
                 let proposal = self.data().proposals.get(&id).ok_or(Error::SomeError)?;
-                
+
                 if proposal.status != Status::Active {
                     return Err(Error::SomeError);
                 }

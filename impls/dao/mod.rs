@@ -1,5 +1,6 @@
 use crate::traits::{dao, proposal::ProposalRef, strategy::StrategyRef};
 use ink::prelude::vec::Vec;
+use openbrush::storage::Mapping;
 use openbrush::traits::{AccountId, Balance, OccupiedStorage, Storage};
 use openbrush::{contracts::access_control::*, modifiers};
 
@@ -18,10 +19,16 @@ pub struct Data {
     pub strategies: Vec<AccountId>,
     ///stores `AccountId` of integrated proposal types
     pub proposal_types: Vec<AccountId>,
+    /// delegator -> delegate
+    pub delegators: Mapping<AccountId,AccountId>,
+    /// delegate -> <delegators>
+    pub delegation: Mapping<AccountId, Vec<AccountId>>,
     ///
     pub private_voting: bool,
     ///
     pub liberum_veto: bool,
+    ///
+    pub delegate_vote: bool,
 }
 
 impl Default for Data {
@@ -29,8 +36,11 @@ impl Default for Data {
         Self {
             strategies: Default::default(),
             proposal_types: Default::default(),
+            delegators: Mapping::default(),
+            delegation: Mapping::default(),
             private_voting: false,
             liberum_veto: false,
+            delegate_vote: false,
         }
     }
 }
@@ -51,13 +61,61 @@ where
             Type = M,
         >,
 {
-
-    default fn private_voting_allowed(&self) -> bool{
+    default fn private_voting_allowed(&self) -> bool {
         self.data::<Data>().private_voting
     }
 
-    default fn liberum_veto_allowed(&self) -> bool{
+    default fn liberum_veto_allowed(&self) -> bool {
         self.data::<Data>().liberum_veto
+    }
+
+    default fn delegate_vote_allowed(&self) -> bool {
+        self.data::<Data>().delegate_vote
+    }
+
+    default fn delegate_vote(&mut self, to_account: AccountId) -> Result<(), dao::Error> {
+        //check if already delegated
+        if self
+            .data::<Data>()
+            .delegators
+            .contains(&Self::env().caller())
+        {
+            return Err(dao::Error::SomeError);
+        }
+        self.data::<Data>().delegators.insert(&Self::env().caller(), &to_account);
+        let mut new_vector = self
+            .data::<Data>()
+            .delegation
+            .get(&to_account)
+            .unwrap_or_default();
+        new_vector.push(Self::env().caller());
+        self.data::<Data>()
+            .delegation
+            .insert(&to_account, &new_vector);
+        Ok(())
+    }
+
+    default fn revoke_delegate_vote(&mut self) -> Result<(), dao::Error> {
+        if !self.data::<Data>().delegators.contains(&Self::env().caller()) {
+            return Err(dao::Error::SomeError);
+        }
+        let delegate = self.data::<Data>().delegators.get(&Self::env().caller()).unwrap();
+        let mut new_vector = self.data::<Data>().delegation.get(&delegate).unwrap();
+        let i = new_vector
+            .iter()
+            .position(|&r| r == Self::env().caller())
+            .unwrap();
+        new_vector.remove(i);
+        if new_vector.is_empty() {
+            self.data::<Data>().delegation.remove(&delegate);
+        } else {
+            self.data::<Data>().delegation.insert(&delegate,&new_vector);
+        }
+        Ok(())
+    }
+
+    default fn has_delegated(&mut self, account: AccountId) -> bool {
+        self.data::<Data>().delegation.contains(&account)
     }
 
     ///allows Founders to add strategy to the DAO
@@ -83,19 +141,26 @@ where
         Ok(())
     }
     ///Calculates vote weight based on incorporated strategies at given moment
-    ///Returns total vote weight for a given `AccountId`
+    ///Returns total vote weight + delegated votes for a given `AccountId`
     default fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, dao::Error> {
-        //logic to add module
         let mut total: Balance = 0;
         for strategy in &self.data::<Data>().strategies {
             //read and sum the vote weight for each strategy by calling other contract that implement Strategy trait
-            let strategy_weight = StrategyRef::get_vote_weight(strategy, address).unwrap_or_default();
-            if strategy_weight.is_none() {
-                return Ok(None)
+            let strategy_weight =
+                StrategyRef::get_vote_weight(strategy, address).unwrap_or_default();
+                //count delegated votes
+            if self.data::<Data>().delegation.contains(&address) {
+                for delegator in self.data::<Data>().delegation.get(&address).unwrap() {
+                    total = total + StrategyRef::get_vote_weight(strategy, delegator).unwrap_or_default().unwrap_or_default();
+                }
             }
             total = total + strategy_weight.unwrap_or_default();
         }
-        Ok(Some(total))
+        if total == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(total))
+        }
     }
     ///Returns `true` if given `AccountId` has voted on at least one
     /// unresolved proposal
@@ -110,20 +175,34 @@ where
     }
 
     #[modifiers(only_role(FOUNDER))]
-    default fn grant_role_in_dao(&mut self, role: RoleType, account: AccountId) -> Result<(), AccessControlError> {
-        if self.data::<access_control::Data<M>>().members.has_role(role, &account) {
-            return Err(AccessControlError::RoleRedundant)
+    default fn grant_role_in_dao(
+        &mut self,
+        role: RoleType,
+        account: AccountId,
+    ) -> Result<(), AccessControlError> {
+        if self
+            .data::<access_control::Data<M>>()
+            .members
+            .has_role(role, &account)
+        {
+            return Err(AccessControlError::RoleRedundant);
         }
-        self.data::<access_control::Data<M>>().members.add(role, &account);
-        Ok(())
-    }
-    
-    #[modifiers(only_role(FOUNDER))]
-    default fn revoke_role_in_dao(&mut self, role: RoleType, account: AccountId) -> Result<(), AccessControlError> {
-        check_role(self, role, account)?;
-        self.data::<access_control::Data<M>>().members.remove(role, &account);
+        self.data::<access_control::Data<M>>()
+            .members
+            .add(role, &account);
         Ok(())
     }
 
-    
+    #[modifiers(only_role(FOUNDER))]
+    default fn revoke_role_in_dao(
+        &mut self,
+        role: RoleType,
+        account: AccountId,
+    ) -> Result<(), AccessControlError> {
+        check_role(self, role, account)?;
+        self.data::<access_control::Data<M>>()
+            .members
+            .remove(role, &account);
+        Ok(())
+    }
 }

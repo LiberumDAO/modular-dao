@@ -25,6 +25,14 @@ pub trait Dao {
     fn private_voting_allowed(&self) -> bool;
     #[ink(message)]
     fn liberum_veto_allowed(&self) -> bool;
+    #[ink(message)]
+    fn delegate_vote_allowed(&self) -> bool;
+    #[ink(message)]
+    fn delegate_vote(&mut self, to_account: AccountId) -> Result<(), Error>;
+    #[ink(message)]
+    fn revoke_delegate_vote(&mut self) -> Result<(), Error>;
+    #[ink(message)]
+    fn has_delegated(&mut self, account: AccountId) -> bool;
     
 }
 

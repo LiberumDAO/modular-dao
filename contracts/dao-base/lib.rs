@@ -6,6 +6,7 @@ mod dao_base {
 
     use modular_dao::impls::dao::{self, FOUNDER, MEMBER};
     use modular_dao::traits::dao::*;
+    use openbrush::storage::Mapping;
     use openbrush::{contracts::access_control::*, traits::Storage};
     use ink::prelude::vec::Vec;
 
@@ -18,15 +19,17 @@ mod dao_base {
         access: access_control::Data,
     }
 
-    impl AccessControl for DaoContract {}
     impl Dao for DaoContract {}
+    impl AccessControl for DaoContract {}
 
     impl DaoContract {
         #[ink(constructor)]
-        pub fn new(founders: Vec<AccountId>, private_voting: bool, liberum_veto: bool) -> Self {
+        pub fn new(founders: Vec<AccountId>, private_voting: bool, liberum_veto: bool, delegate_vote: bool) -> Self {
             let mut instance = Self::default();
             instance.dao.private_voting = private_voting;
             instance.dao.liberum_veto = liberum_veto;
+            instance.dao.delegate_vote = delegate_vote;
+            instance.dao.delegation = Mapping::default();
 
             let caller = instance.env().caller();
             instance._init_with_admin(caller);
