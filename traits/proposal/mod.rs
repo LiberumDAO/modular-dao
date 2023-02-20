@@ -34,9 +34,14 @@ pub trait Proposal {
     ///Allows user to vote for on the specified proposal
     #[ink(message)]
     fn vote(&mut self, id: ProposalId, vote: VoteType) -> Result<(), Error>;
+    ///Allows user to vote for on the specified proposal
+    #[ink(message)]
+    fn vote_private(&mut self, id: ProposalId, vote: VoteType, secret: String) -> Result<(), Error>;
     ///Returns `true` if `address` voted in any pending proposal
     #[ink(message)]
     fn in_active_proposal(&self, account: AccountId) -> bool;
+    #[ink(message)]
+    fn liberum_veto(&mut self, id: ProposalId) -> Result<(),Error>;
 }
 
 #[openbrush::wrapper]
@@ -45,7 +50,18 @@ pub type ProposalRef = dyn Proposal;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum Error {
-    SomeError,
+    NoVotePower,
+    ProposalTime,
+    ProposalNotExists,
+    VotesAlreadyCounted,
+    ProposalIsNotPending,
+    ProposalIsNotActive,
+    PrivateVoting,
+    NotAllowedToVeto,
+    DelegatedVote,
+    NotEnoughFunds,
+    TransferError,
+    //SomeError,
 }
 
 pub type ProposalId = u32;
@@ -53,7 +69,7 @@ pub type ProposalId = u32;
 #[derive(Debug, Clone, scale::Encode, scale::Decode)]
 #[cfg_attr(feature = "std", derive(StorageLayout, scale_info::TypeInfo))]
 ///Proposal result in a form (number of voters, For votes, Against votes)
-pub struct ProposalResult(pub u32, pub Balance, pub Balance);
+pub struct ProposalResult(pub Balance, pub Balance, pub Balance);
 
 
 #[derive(Debug, Clone, scale::Encode, scale::Decode)]
@@ -69,6 +85,16 @@ impl Default for VoteType {
     fn default() -> Self {
         VoteType::Abstain
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(StorageLayout, scale_info::TypeInfo))]
+pub enum Status {
+    Active,
+    Archived,
+    Executed,
+    Rejected,
+    Pending,
 }
 
 #[derive(Encode, Decode)]
@@ -92,7 +118,8 @@ pub struct ProposalData {
     pub voters: Vec<AccountId>,
     pub result: Option<ProposalResult>,
     pub quorum: u32,
-    pub account_to: AccountId,
+    pub status: Status,
     pub private_voting: bool,
-    pub executed: bool,
+    pub account_to: AccountId,   // <- Unfortunately, generic ink! methods are not suported so
+    pub amount: Balance,        // <- the "execution data" has to explicitly defined in the proposal
 }

@@ -13,10 +13,27 @@ pub trait Dao {
     fn add_proposal_type(&mut self, proposal_address: AccountId) -> Result<(), Error>;
     ///Returns cumulative vote weight of a given address for all strategies
     #[ink(message)]
-    fn get_vote_weight(&self, address: AccountId) -> Result<u128, Error>;
+    fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, Error>;
     ///Returns `true` if `address` voted in any pending proposal
     #[ink(message)]
     fn in_active_proposal(&self, address: AccountId) -> bool;
+    #[ink(message)]
+    fn grant_role_in_dao(&mut self, role: RoleType, account: AccountId) -> Result<(), AccessControlError>;
+    #[ink(message)]
+    fn revoke_role_in_dao(&mut self, role: RoleType, account: AccountId) -> Result<(), AccessControlError>;
+    #[ink(message)]
+    fn private_voting_allowed(&self) -> bool;
+    #[ink(message)]
+    fn liberum_veto_allowed(&self) -> bool;
+    #[ink(message)]
+    fn delegate_vote_allowed(&self) -> bool;
+    #[ink(message)]
+    fn delegate_vote(&mut self, to_account: AccountId) -> Result<(), Error>;
+    #[ink(message)]
+    fn revoke_delegate_vote(&mut self) -> Result<(), Error>;
+    #[ink(message)]
+    fn has_delegated(&mut self, account: AccountId) -> bool;
+    
 }
 
 #[openbrush::wrapper]
@@ -29,6 +46,9 @@ pub enum Error {
     AccessControlError(AccessControlError),
     StrategyAlreadyIncorporated,
     ProposalTypeAlreadyIncorporated,
+    VoteAlreadyDelegated,
+    VoteNotDelegated,
+    //SomeError,
 }
 
 impl From<AccessControlError> for Error {
