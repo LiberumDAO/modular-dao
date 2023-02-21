@@ -223,9 +223,7 @@ impl<T: Storage<Data>> Proposal for T {
         }
         self.data().votes.insert(&(id, Self::env().caller()), &vote);
         proposal.voters.push(Self::env().caller());
-        self.data().proposals.insert(&id,&ProposalData {
-            ..proposal
-        });
+        self.data().proposals.insert(&id,&proposal);
         Ok(())
     }
     ///
