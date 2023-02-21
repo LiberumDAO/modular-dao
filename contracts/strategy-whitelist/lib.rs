@@ -3,50 +3,56 @@
 
 #[openbrush::contract]
 mod strategy_whitelist {
-    use openbrush::contracts::traits::access_control::*;
     use modular_dao::impls::strategy;
-    use modular_dao::impls::dao::MEMBER;
+    use modular_dao::impls::strategy::extensions::whitelist;
     use openbrush::traits::Storage;
+    use ink::prelude::vec::Vec;
 
     #[ink(storage)]
     #[derive( Storage)]
-    pub struct Whitelist {
+    pub struct WhitelistContract {
         #[storage_field]
-        data: strategy::Data,
+        strategy: strategy::Data,
+        #[storage_field]
+        whitelist: whitelist::Data,
         factor: u128,
     }
 
-    impl Default for Whitelist {
+    impl Default for WhitelistContract {
         fn default() -> Self {
             Self {
-                data: Default::default(),
+                strategy: Default::default(),
+                whitelist: Default::default(),
                 factor: Default::default(),
             }
         }
     }
 
+    impl whitelist::Whitelist for WhitelistContract {}
+
 
     ///trait implementation
-    impl strategy::Strategy for Whitelist {
+    impl strategy::Strategy for WhitelistContract {
         #[ink(message)]
-        fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, strategy::Error> {
+        fn get_vote_weight(&self, address: AccountId) -> Option<u128> {
             //the logic could include getting some values from MasterDao contract
             //checking balance of a particular token of the `address`
 
             //just dummy calculation  with some balance of PSP22 token
-            if AccessControlRef::has_role(&self.data.master_dao, MEMBER,address) {
-                return Ok(Some(1))
+            if self.whitelist.list.contains(&address) {
+                return Some(self.factor)
             }
-            Ok(None)
+            None
         }
     }
-    impl Whitelist {
+    impl WhitelistContract {
         /// Constructor
         #[ink(constructor)]
-        pub fn new(master_dao: AccountId, factor: u128) -> Self {
+        pub fn new(master_dao: AccountId, factor: u128, list: Vec<AccountId>) -> Self {
             let mut instance = Self::default();
-                instance.data.master_dao = master_dao;
+                instance.strategy.master_dao = master_dao;
                 instance.factor = factor;
+                instance.whitelist.list = list;
                 instance
         }
     }

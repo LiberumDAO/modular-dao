@@ -19,8 +19,9 @@ pub trait Proposal {
         description: String,
         duration: u64,
         quorum: u32,
-        account_to: AccountId,
         private_voting: bool,
+        account_to: AccountId,
+        amount: Balance,
     ) -> Result<(), Error>;
     ///Returns proposal data
     #[ink(message)]

@@ -1,3 +1,4 @@
+pub mod extensions;
 pub use crate::traits::strategy::*;
 use openbrush::traits::{AccountId, Storage};
 
@@ -19,10 +20,10 @@ impl Default for Data {
 }
 
 impl<T: Storage<Data>> Strategy for T {
-    default fn get_vote_weight(&self, _address: AccountId) -> Result<Option<u128>, Error> {
+    default fn get_vote_weight(&self, _address: AccountId) -> Option<u128> {
         // the logic could include getting some values from MasterDao contract
         // checking balance of a particular token of the `address`
         // basically, determines the "logic" of the strategy
-        Ok(Some(1))
+        Some(1)
     }
 }

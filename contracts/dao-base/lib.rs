@@ -4,10 +4,11 @@
 #[openbrush::contract]
 mod dao_base {
 
-    use modular_dao::impls::dao::{self, FOUNDER, MEMBER};
+    use modular_dao::impls::dao::{self, FOUNDER};
+    use openbrush::contracts::access_control::extensions::enumerable::*;
     use modular_dao::traits::dao::*;
     use openbrush::storage::Mapping;
-    use openbrush::{contracts::access_control::*, traits::Storage};
+    use openbrush::{traits::Storage};
     use ink::prelude::vec::Vec;
 
     #[ink(storage)]
@@ -16,11 +17,12 @@ mod dao_base {
         #[storage_field]
         dao: dao::Data,
         #[storage_field]
-        access: access_control::Data,
+        access: access_control::Data<enumerable::Members>,
     }
 
     impl Dao for DaoContract {}
     impl AccessControl for DaoContract {}
+    impl AccessControlEnumerable for DaoContract {}
 
     impl DaoContract {
         #[ink(constructor)]
@@ -36,16 +38,10 @@ mod dao_base {
             instance
                 .grant_role(FOUNDER, caller)
                 .expect("Should grant the role");
-            instance
-                .grant_role(MEMBER, caller)
-                .expect("Should grant the role");
             for i in 0..founders.len() {
                 if *founders.get(i).unwrap() != caller {
                     instance
                         .grant_role(FOUNDER, *founders.get(i).unwrap())
-                        .expect("Should grant the role");
-                    instance
-                        .grant_role(MEMBER, *founders.get(i).unwrap())
                         .expect("Should grant the role");
                 }
             }

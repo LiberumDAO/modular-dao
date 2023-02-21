@@ -6,8 +6,7 @@ use openbrush::{contracts::access_control::*, modifiers};
 
 use ink::storage::traits::{ManualKey, ResolverKey, Storable, StorableHint};
 
-pub const FOUNDER: RoleType = ink::selector_id!("FOUNDER");
-pub const MEMBER: RoleType = ink::selector_id!("MEMBER");
+pub const FOUNDER: RoleType = 1;
 
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 
@@ -20,7 +19,7 @@ pub struct Data {
     ///stores `AccountId` of integrated proposal types
     pub proposal_types: Vec<AccountId>,
     /// delegator -> delegate
-    pub delegators: Mapping<AccountId,AccountId>,
+    pub delegators: Mapping<AccountId, AccountId>,
     /// delegate -> <delegators>
     pub delegation: Mapping<AccountId, Vec<AccountId>>,
     ///
@@ -74,6 +73,9 @@ where
     }
 
     default fn delegate_vote(&mut self, to_account: AccountId) -> Result<(), dao::Error> {
+        if !self.data::<Data>().delegate_vote {
+            return Err(dao::Error::DelegationNotAllowed);
+        }
         //check if already delegated
         if self
             .data::<Data>()
@@ -82,7 +84,9 @@ where
         {
             return Err(dao::Error::VoteAlreadyDelegated);
         }
-        self.data::<Data>().delegators.insert(&Self::env().caller(), &to_account);
+        self.data::<Data>()
+            .delegators
+            .insert(&Self::env().caller(), &to_account);
         let mut new_vector = self
             .data::<Data>()
             .delegation
@@ -96,10 +100,21 @@ where
     }
 
     default fn revoke_delegate_vote(&mut self) -> Result<(), dao::Error> {
-        if !self.data::<Data>().delegators.contains(&Self::env().caller()) {
+        if !self.data::<Data>().delegate_vote {
+            return Err(dao::Error::DelegationNotAllowed);
+        }
+        if !self
+            .data::<Data>()
+            .delegators
+            .contains(&Self::env().caller())
+        {
             return Err(dao::Error::VoteNotDelegated);
         }
-        let delegate = self.data::<Data>().delegators.get(&Self::env().caller()).unwrap();
+        let delegate = self
+            .data::<Data>()
+            .delegators
+            .get(&Self::env().caller())
+            .unwrap();
         let mut new_vector = self.data::<Data>().delegation.get(&delegate).unwrap();
         let i = new_vector
             .iter()
@@ -109,7 +124,9 @@ where
         if new_vector.is_empty() {
             self.data::<Data>().delegation.remove(&delegate);
         } else {
-            self.data::<Data>().delegation.insert(&delegate,&new_vector);
+            self.data::<Data>()
+                .delegation
+                .insert(&delegate, &new_vector);
         }
         Ok(())
     }
@@ -127,6 +144,22 @@ where
         self.data::<Data>().strategies.push(strategy_address);
         Ok(())
     }
+
+    #[modifiers(only_role(FOUNDER))]
+    default fn remove_strategy(&mut self, strategy_address: AccountId) -> Result<(), dao::Error> {
+        if self.data::<Data>().strategies.contains(&strategy_address) {
+            let i = self
+                .data::<Data>()
+                .strategies
+                .iter()
+                .position(|&r| r == strategy_address)
+                .unwrap();
+            self.data::<Data>().strategies.remove(i);
+        } else {
+            return Err(dao::Error::StrategyNotIncorporated);
+        }
+        Ok(())
+    }
     ///allows Founders to add proposal type to the DAO
     #[modifiers(only_role(FOUNDER))]
     default fn add_proposal_type(&mut self, proposal_address: AccountId) -> Result<(), dao::Error> {
@@ -140,6 +173,23 @@ where
         self.data::<Data>().proposal_types.push(proposal_address);
         Ok(())
     }
+
+    #[modifiers(only_role(FOUNDER))]
+    default fn remove_proposal_type(&mut self, proposal_address: AccountId) -> Result<(), dao::Error> {
+        if self.data::<Data>().proposal_types.contains(&proposal_address) {
+            let i = self
+                .data::<Data>()
+                .proposal_types
+                .iter()
+                .position(|&r| r == proposal_address)
+                .unwrap();
+            self.data::<Data>().proposal_types.remove(i);
+        } else {
+            return Err(dao::Error::ProposalTypeNotIncorporated);
+        }
+        Ok(())
+    }
+    
     ///Calculates vote weight based on incorporated strategies at given moment
     ///Returns total vote weight + delegated votes for a given `AccountId`
     default fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, dao::Error> {
@@ -148,13 +198,14 @@ where
             //read and sum the vote weight for each strategy by calling other contract that implement Strategy trait
             let strategy_weight =
                 StrategyRef::get_vote_weight(strategy, address).unwrap_or_default();
-                //count delegated votes
+            //count delegated votes
             if self.data::<Data>().delegation.contains(&address) {
                 for delegator in self.data::<Data>().delegation.get(&address).unwrap() {
-                    total = total + StrategyRef::get_vote_weight(strategy, delegator).unwrap_or_default().unwrap_or_default();
+                    total = total
+                        + StrategyRef::get_vote_weight(strategy, delegator).unwrap_or_default();
                 }
             }
-            total = total + strategy_weight.unwrap_or_default();
+            total = total + strategy_weight;
         }
         if total == 0 {
             Ok(None)
