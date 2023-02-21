@@ -20,8 +20,9 @@ pub trait Proposal {
         duration: TimePeriod,
         quorum: u32,
         private_voting: bool,
-        account_to: AccountId,
-        amount: Balance,
+        account_to: Option<AccountId>,
+        amount: Option<Balance>,
+        token_address: Option<AccountId>,
     ) -> Result<(), Error>;
     ///Returns proposal data
     #[ink(message)]
@@ -121,8 +122,9 @@ pub struct ProposalData {
     pub quorum: u32,
     pub status: Status,
     pub private_voting: bool,
-    pub account_to: AccountId,   // <- Unfortunately, generic ink! methods are not suported so
-    pub amount: Balance,        // <- the "execution data" has to explicitly defined in the proposal
+    pub account_to: Option<AccountId>,   // <- Unfortunately, generic ink! methods are not suported so
+    pub amount: Option<Balance>,        // <- the "execution data" has to explicitly defined in the proposal
+    pub token_address: Option<AccountId>,   // <- Unfortunately, generic ink! methods are not suported so
 }
 
 #[derive(Debug, Clone, scale::Encode, scale::Decode)]

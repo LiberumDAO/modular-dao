@@ -40,8 +40,9 @@ impl<T: Storage<Data>> Proposal for T {
         duration: TimePeriod,
         quorum: u32,
         private_voting: bool,
-        account_to: AccountId,
-        amount: Balance,
+        account_to: Option<AccountId>,
+        amount: Option<Balance>,
+        token_address: Option<AccountId>,
     ) -> Result<(), Error> {
         // TODO: logic if caller is allowed to propose (for only checks if caller has any power)
         // it could be part of voting strategy or seperate strategy
@@ -67,6 +68,7 @@ impl<T: Storage<Data>> Proposal for T {
             status: Status::Active,
             account_to,
             amount,
+            token_address,
         };
 
         let id = self.data().proposal_id;
@@ -196,7 +198,7 @@ impl<T: Storage<Data>> Proposal for T {
             return Err(Error::DelegatedVote);
         }
 
-        let proposal = self
+        let mut proposal = self
             .data()
             .proposals
             .get(&id)
@@ -215,6 +217,10 @@ impl<T: Storage<Data>> Proposal for T {
             return Err(Error::PrivateVoting);
         }
         self.data().votes.insert(&(id, Self::env().caller()), &vote);
+        proposal.voters.push(Self::env().caller());
+        self.data().proposals.insert(&id,&ProposalData {
+            ..proposal
+        });
         Ok(())
     }
     ///

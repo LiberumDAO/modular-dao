@@ -18,7 +18,11 @@ mod proposal_transfer {
     impl Proposal for ProposalEvent {
         #[ink(message)]
         fn execute(&mut self, id: ProposalId) -> Result<(), Error> {
-            let proposal = self.data.proposals.get(&id).ok_or(Error::ProposalNotExists)?;
+            let proposal = self
+                .data
+                .proposals
+                .get(&id)
+                .ok_or(Error::ProposalNotExists)?;
 
             if proposal.status == Status::Rejected {
                 self.data.proposals.insert(
@@ -34,15 +38,22 @@ mod proposal_transfer {
             if proposal.status != Status::Pending {
                 return Err(Error::ProposalIsNotPending);
             }
+            if proposal.token_address.is_none() {
+                if Self::env().balance() < proposal.amount.unwrap_or_default() {
+                    return Err(Error::NotEnoughFunds);
+                }
 
-            if Self::env().balance() < proposal.amount {
-                return Err(Error::NotEnoughFunds)
+                Self::env()
+                    .transfer(
+                        proposal.account_to.unwrap(),
+                        proposal.amount.unwrap_or_default(),
+                    )
+                    .map_err(|_| Error::TransferError)?;
+            } else {
+                todo!()
+                //token psp22 transfer
             }
 
-            Self::env()
-                .transfer(proposal.account_to, proposal.amount)
-                .map_err(|_| Error::TransferError)?;
-            
             self.data.proposals.insert(
                 &id,
                 &ProposalData {
@@ -53,8 +64,8 @@ mod proposal_transfer {
             Self::env().emit_event(Executed {
                 proposal_id: Some(id),
                 executor: Some(Self::env().caller()),
-                account_to: Some(proposal.account_to),
-                amount: Some(proposal.amount),
+                account_to: proposal.account_to,
+                amount: proposal.amount,
             });
             Ok(())
         }
@@ -81,6 +92,5 @@ mod proposal_transfer {
         account_to: Option<AccountId>,
 
         amount: Option<Balance>,
-
     }
 }
