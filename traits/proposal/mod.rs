@@ -17,7 +17,7 @@ pub trait Proposal {
         &mut self,
         title: String,
         description: String,
-        duration: u64,
+        duration: TimePeriod,
         quorum: u32,
         private_voting: bool,
         account_to: AccountId,
@@ -124,3 +124,28 @@ pub struct ProposalData {
     pub account_to: AccountId,   // <- Unfortunately, generic ink! methods are not suported so
     pub amount: Balance,        // <- the "execution data" has to explicitly defined in the proposal
 }
+
+#[derive(Debug, Clone, scale::Encode, scale::Decode)]
+#[cfg_attr(feature = "std", derive(StorageLayout, scale_info::TypeInfo))]
+///Struct representing a single proposal's data
+pub struct TimePeriod {
+    pub days: u64,
+    pub hours: u64,
+    pub minutes: u64,
+}
+
+impl Default for TimePeriod {
+    fn default() -> Self { 
+        Self { days: 0, hours: 0, minutes: 0 }
+    }
+}
+
+impl TimePeriod {
+    pub fn to_timestamp(&self) -> u64 {
+        self.days * ONE_DAY + self.hours + ONE_HOUR + self.minutes * ONE_MINUTE
+    }
+}
+
+pub const ONE_MINUTE: u64 = 60 * 1000;
+pub const ONE_HOUR: u64 = 60 * ONE_MINUTE;
+pub const ONE_DAY: u64 = 24 * ONE_HOUR;

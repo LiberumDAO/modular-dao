@@ -9,8 +9,6 @@ use ink::prelude::vec::Vec;
 
 use super::dao::FOUNDER;
 
-pub const ONE_MINUTE: u64 = 60 * 1000;
-
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 
 #[derive(Debug)]
@@ -39,7 +37,7 @@ impl<T: Storage<Data>> Proposal for T {
         &mut self,
         title: String,
         description: String,
-        duration: u64,
+        duration: TimePeriod,
         quorum: u32,
         private_voting: bool,
         account_to: AccountId,
@@ -52,7 +50,7 @@ impl<T: Storage<Data>> Proposal for T {
             return Err(Error::NoVotePower);
         }
 
-        if duration == 0 || duration > 60 * ONE_MINUTE {
+        if duration.to_timestamp() < ONE_MINUTE {
             return Err(Error::ProposalTime);
         }
 
@@ -61,7 +59,7 @@ impl<T: Storage<Data>> Proposal for T {
             title,
             description,
             vote_start: now,
-            vote_end: now + duration * ONE_MINUTE,
+            vote_end: now + duration.to_timestamp(),
             voters: Vec::new(),
             result: None,
             quorum,
