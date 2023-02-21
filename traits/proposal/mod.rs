@@ -145,7 +145,7 @@ impl Default for TimePeriod {
 
 impl TimePeriod {
     pub fn to_timestamp(&self) -> u64 {
-        self.days * ONE_DAY + self.hours + ONE_HOUR + self.minutes * ONE_MINUTE
+        self.days * ONE_DAY + self.hours * ONE_HOUR + self.minutes * ONE_MINUTE
     }
 }
 
