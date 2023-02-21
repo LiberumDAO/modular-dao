@@ -29,7 +29,7 @@ impl<T: Storage<Data> + Storage<strategy::Data>> Whitelist for T {
             Self::env().caller(),
         ) {
             if self.data::<Data>().list.contains(&voter_address) {
-                return Err(Error::SomeError);
+                return Err(Error::MemberAlreadyEnrolled);
             }
             self.data::<Data>().list.push(voter_address);
             return Ok(());
@@ -54,6 +54,8 @@ impl<T: Storage<Data> + Storage<strategy::Data>> Whitelist for T {
                     .unwrap();
                 self.data::<Data>().list.remove(i);
                 return Ok(());
+            } else {
+                return Err(Error::MemberNotFound)
             }
         }
         return Err(Error::AccessControlError(

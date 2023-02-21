@@ -23,7 +23,8 @@ pub type WhitelistRef = dyn Whitelist;
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum Error {
     AccessControlError(AccessControlError),
-    SomeError,
+    MemberNotFound,
+    MemberAlreadyEnrolled,
 }
 
 impl From<AccessControlError> for Error {
