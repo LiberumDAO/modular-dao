@@ -1,4 +1,4 @@
-use openbrush::contracts::access_control::*;
+use openbrush::contracts::access_control::extensions::enumerable::*;
 use openbrush::traits::AccountId;
 use scale::{Decode, Encode};
 
@@ -8,9 +8,13 @@ pub trait Dao {
     ///Adds strategy SC - the SC under `strategy_address` has to implement `modular_dao::traits::Strategy`
     #[ink(message)]
     fn add_strategy(&mut self, strategy_address: AccountId) -> Result<(), Error>;
+    #[ink(message)]
+    fn remove_strategy(&mut self, strategy_address: AccountId) -> Result<(), Error>;
     ///Adds proposal SC - the SC under `proposal_address` has to implement `modular_dao::traits::Proposal`
     #[ink(message)]
     fn add_proposal_type(&mut self, proposal_address: AccountId) -> Result<(), Error>;
+    #[ink(message)]
+    fn remove_proposal_type(&mut self, proposal_address: AccountId) -> Result<(), Error>;
     ///Returns cumulative vote weight of a given address for all strategies
     #[ink(message)]
     fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, Error>;
@@ -37,7 +41,7 @@ pub trait Dao {
 }
 
 #[openbrush::wrapper]
-pub type DaoContractRef = dyn Dao + AccessControl;
+pub type DaoContractRef = dyn Dao + AccessControl + AccessControlEnumerable;
 
 ///TODO appropriate errors
 #[derive(Debug, PartialEq, Eq, Encode, Decode)]
@@ -45,9 +49,14 @@ pub type DaoContractRef = dyn Dao + AccessControl;
 pub enum Error {
     AccessControlError(AccessControlError),
     StrategyAlreadyIncorporated,
+    StrategyNotIncorporated,
     ProposalTypeAlreadyIncorporated,
+    ProposalTypeNotIncorporated,
     VoteAlreadyDelegated,
     VoteNotDelegated,
+    DelegationNotAllowed,
+    PrivateVotingNotAllowed,
+    LiberumVetoNotAlloed,
     //SomeError,
 }
 

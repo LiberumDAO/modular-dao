@@ -2,12 +2,12 @@ use crate::traits::dao::DaoContractRef;
 pub use crate::traits::proposal::*;
 use openbrush::{
     storage::Mapping,
-    traits::{AccountId, Storage, String},
+    traits::{AccountId, Storage, String, Balance},
 };
 
 use ink::prelude::vec::Vec;
 
-use super::dao::MEMBER;
+use super::dao::FOUNDER;
 
 pub const ONE_MINUTE: u64 = 60 * 1000;
 
@@ -41,14 +41,13 @@ impl<T: Storage<Data>> Proposal for T {
         description: String,
         duration: u64,
         quorum: u32,
-        account_to: AccountId,
         private_voting: bool,
+        account_to: AccountId,
+        amount: Balance,
     ) -> Result<(), Error> {
         // TODO: logic if caller is allowed to propose (for only checks if caller has any power)
         // it could be part of voting strategy or seperate strategy
-        if DaoContractRef::get_vote_weight(&self.data().master_dao, Self::env().caller())
-            .unwrap_or_default()
-            .is_none()
+        if DaoContractRef::get_vote_weight(&self.data().master_dao, Self::env().caller()).unwrap_or_default().is_none()
         {
             return Err(Error::NoVotePower);
         }
@@ -69,7 +68,7 @@ impl<T: Storage<Data>> Proposal for T {
             private_voting,
             status: Status::Active,
             account_to,
-            amount: Default::default(),
+            amount,
         };
 
         let id = self.data().proposal_id;
@@ -80,11 +79,18 @@ impl<T: Storage<Data>> Proposal for T {
     }
     ///Returns proposal data
     default fn get_proposal(&self, id: ProposalId) -> Result<ProposalData, Error> {
-        self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)
+        self.data()
+            .proposals
+            .get(&id)
+            .ok_or(Error::ProposalNotExists)
     }
 
     default fn count_votes(&mut self, id: ProposalId) -> Result<ProposalResult, Error> {
-        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
+        let proposal = self
+            .data()
+            .proposals
+            .get(&id)
+            .ok_or(Error::ProposalNotExists)?;
         //check if there's already some result
         if proposal.result.is_some() {
             return Err(Error::VotesAlreadyCounted);
@@ -127,7 +133,7 @@ impl<T: Storage<Data>> Proposal for T {
                 }
             }
             //for delegator in DaoContractRef::get_delegators - calculate delegated votes
-            //if 
+            //if
             let mut new_status = Status::Pending;
             let result: ProposalResult = ProposalResult(abstain_votes, for_votes, against_votes);
             //check quorum
@@ -153,7 +159,11 @@ impl<T: Storage<Data>> Proposal for T {
     }
     ///executes the proposal
     default fn execute(&mut self, id: ProposalId) -> Result<(), Error> {
-        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
+        let proposal = self
+            .data()
+            .proposals
+            .get(&id)
+            .ok_or(Error::ProposalNotExists)?;
 
         if proposal.status == Status::Rejected {
             self.data().proposals.insert(
@@ -188,7 +198,11 @@ impl<T: Storage<Data>> Proposal for T {
             return Err(Error::DelegatedVote);
         }
 
-        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
+        let proposal = self
+            .data()
+            .proposals
+            .get(&id)
+            .ok_or(Error::ProposalNotExists)?;
 
         if proposal.status != Status::Active {
             return Err(Error::ProposalIsNotActive);
@@ -196,7 +210,7 @@ impl<T: Storage<Data>> Proposal for T {
 
         let now = Self::env().block_timestamp();
 
-        if now < proposal.vote_end {
+        if now > proposal.vote_end {
             return Err(Error::ProposalTime);
         }
         if proposal.private_voting {
@@ -212,7 +226,11 @@ impl<T: Storage<Data>> Proposal for T {
         _vote: VoteType,
         _secret: String,
     ) -> Result<(), Error> {
-        let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
+        let proposal = self
+            .data()
+            .proposals
+            .get(&id)
+            .ok_or(Error::ProposalNotExists)?;
 
         if proposal.status != Status::Active {
             return Err(Error::ProposalIsNotActive);
@@ -251,10 +269,14 @@ impl<T: Storage<Data>> Proposal for T {
         if DaoContractRef::liberum_veto_allowed(&self.data::<Data>().master_dao) {
             if DaoContractRef::has_role(
                 &self.data::<Data>().master_dao,
-                MEMBER, //only MEMBERs can veto, could be changed to strategy or something
+                FOUNDER, //only MEMBERs can veto, could be changed to strategy or something
                 Self::env().caller(),
             ) {
-                let proposal = self.data().proposals.get(&id).ok_or(Error::ProposalNotExists)?;
+                let proposal = self
+                    .data()
+                    .proposals
+                    .get(&id)
+                    .ok_or(Error::ProposalNotExists)?;
 
                 if proposal.status != Status::Active {
                     return Err(Error::ProposalIsNotActive);
