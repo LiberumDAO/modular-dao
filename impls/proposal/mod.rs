@@ -189,14 +189,6 @@ impl<T: Storage<Data>> Proposal for T {
         let vote_weight =
             DaoContractRef::get_vote_weight(&self.data().master_dao, Self::env().caller())
                 .unwrap_or_default();
-        //check if caller has right to vote
-        if vote_weight.is_none() {
-            return Err(Error::NoVotePower);
-        }
-        //check if has delegated vote
-        if DaoContractRef::has_delegated(&self.data().master_dao, Self::env().caller()) {
-            return Err(Error::DelegatedVote);
-        }
 
         let mut proposal = self
             .data()
@@ -213,6 +205,19 @@ impl<T: Storage<Data>> Proposal for T {
         if now > proposal.vote_end {
             return Err(Error::ProposalTime);
         }
+        //check if already voted
+        if proposal.voters.contains(&Self::env().caller()) {
+            return Err(Error::AlreadyVoted);
+        }
+        //check if caller has right to vote
+        if vote_weight.is_none() {
+            return Err(Error::NoVotePower);
+        }
+        //check if has delegated vote
+        if DaoContractRef::has_delegated(&self.data().master_dao, Self::env().caller()) {
+            return Err(Error::DelegatedVote);
+        }
+
         if proposal.private_voting {
             return Err(Error::PrivateVoting);
         }

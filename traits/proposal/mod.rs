@@ -52,6 +52,7 @@ pub type ProposalRef = dyn Proposal;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum Error {
+    AlreadyVoted,
     NoVotePower,
     ProposalTime,
     ProposalNotExists,
