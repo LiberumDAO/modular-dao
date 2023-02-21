@@ -30,23 +30,17 @@ mod strategy_whitelist {
 
     impl whitelist::Whitelist for WhitelistContract {}
 
-
-    ///trait implementation
     impl strategy::Strategy for WhitelistContract {
         #[ink(message)]
         fn get_vote_weight(&self, address: AccountId) -> Option<u128> {
-            //the logic could include getting some values from MasterDao contract
-            //checking balance of a particular token of the `address`
-
-            //just dummy calculation  with some balance of PSP22 token
             if self.whitelist.list.contains(&address) {
                 return Some(self.factor)
             }
             None
         }
     }
+
     impl WhitelistContract {
-        /// Constructor
         #[ink(constructor)]
         pub fn new(master_dao: AccountId, factor: u128, list: Vec<AccountId>) -> Self {
             let mut instance = Self::default();
@@ -56,5 +50,4 @@ mod strategy_whitelist {
                 instance
         }
     }
-
 }

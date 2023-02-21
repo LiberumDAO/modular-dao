@@ -1,13 +1,15 @@
-use crate::traits::dao::DaoContractRef;
 pub use crate::traits::proposal::*;
+pub use super::dao::FOUNDER;
+use crate::traits::dao::DaoContractRef;
 use openbrush::{
     storage::Mapping,
-    traits::{AccountId, Storage, String, Balance},
+    traits::{AccountId, Balance, Storage, String},
 };
+//use ink::codegen::EmitEvent;
+//use openbrush::traits::DefaultEnv;
 
 use ink::prelude::vec::Vec;
 
-use super::dao::FOUNDER;
 
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 
@@ -31,7 +33,7 @@ impl Default for Data {
         }
     }
 }
-///Default implementation of `modular_dao::traits::Proposal` SC
+
 impl<T: Storage<Data>> Proposal for T {
     default fn propose(
         &mut self,
@@ -46,7 +48,9 @@ impl<T: Storage<Data>> Proposal for T {
     ) -> Result<(), Error> {
         // TODO: logic if caller is allowed to propose (for only checks if caller has any power)
         // it could be part of voting strategy or seperate strategy
-        if DaoContractRef::get_vote_weight(&self.data().master_dao, Self::env().caller()).unwrap_or_default().is_none()
+        if DaoContractRef::get_vote_weight(&self.data().master_dao, Self::env().caller())
+            .unwrap_or_default()
+            .is_none()
         {
             return Err(Error::NoVotePower);
         }
@@ -74,7 +78,7 @@ impl<T: Storage<Data>> Proposal for T {
         let id = self.data().proposal_id;
         self.data().proposal_id += 1;
         self.data().proposals.insert(&id, &proposal);
-
+        self._emit_proposal_created_event(id, Self::env().caller());
         Ok(())
     }
     ///Returns proposal data
@@ -154,6 +158,7 @@ impl<T: Storage<Data>> Proposal for T {
                     ..proposal
                 },
             );
+            self._emit_votes_counted_event(id);
             Ok(result)
         }
     }
@@ -179,10 +184,35 @@ impl<T: Storage<Data>> Proposal for T {
         if proposal.status != Status::Pending {
             return Err(Error::ProposalIsNotPending);
         }
+        if proposal.token_address.is_none() {
+            if Self::env().balance() < proposal.amount.unwrap_or_default() {
+                return Err(Error::NotEnoughFunds);
+            }
+
+            Self::env()
+                .transfer(
+                    proposal.account_to.unwrap(),
+                    proposal.amount.unwrap_or_default(),
+                )
+                .map_err(|_| Error::TransferError)?;
+            self._emit_transferred_event(id, proposal.account_to.unwrap(),proposal.amount.unwrap());
+        } else {
+            todo!()
+            //token psp22 transfer
+        }
+
+        self.data().proposals.insert(
+            &id,
+            &ProposalData {
+                status: Status::Executed,
+                ..proposal
+            },
+        );
+        self._emit_executed_event(id, Self::env().caller());
+        Ok(())
 
         //TODO: emit appropriate event
         //ATM it's not possible to have shared event definition across smart contracts
-        todo!()
     }
     ///Allows user to vote for on the specified proposal
     default fn vote(&mut self, id: ProposalId, vote: VoteType) -> Result<(), Error> {
@@ -223,7 +253,8 @@ impl<T: Storage<Data>> Proposal for T {
         }
         self.data().votes.insert(&(id, Self::env().caller()), &vote);
         proposal.voters.push(Self::env().caller());
-        self.data().proposals.insert(&id,&proposal);
+        self.data().proposals.insert(&id, &proposal);
+        self._emit_voted_event(id, Self::env().caller());
         Ok(())
     }
     ///
@@ -309,4 +340,23 @@ impl<T: Storage<Data>> Proposal for T {
             return Err(Error::NotAllowedToVeto);
         }
     }
+
+    
+}
+
+// due to how ink! currently handles events, it is impossible to implement events in default implementation
+pub trait Internal {
+    fn _emit_proposal_created_event(&self, id: ProposalId, creator: AccountId);
+    fn _emit_voted_event(&self, id: ProposalId, voter: AccountId);
+    fn _emit_votes_counted_event(&self, id: ProposalId);
+    fn _emit_executed_event(&self, id: ProposalId, executor: AccountId);
+    fn _emit_transferred_event(&self, id: ProposalId, account_to: AccountId, amount: Balance);
+}
+
+impl<T: Storage<Data>> Internal for T {
+    default fn _emit_proposal_created_event(&self, _id: ProposalId, _creator: AccountId) {}
+    default fn _emit_voted_event(&self, _id: ProposalId, _voter: AccountId) {}
+    default fn _emit_votes_counted_event(&self, _id: ProposalId) {}
+    default fn _emit_executed_event(&self, _id: ProposalId, _executor: AccountId) {}
+    default fn _emit_transferred_event(&self, _id: ProposalId, _account_to: AccountId, _amount: Balance) {}
 }

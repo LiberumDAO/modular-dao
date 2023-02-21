@@ -10,68 +10,14 @@ mod proposal_transfer {
 
     #[ink(storage)]
     #[derive(Default, Storage)]
-    pub struct ProposalEvent {
+    pub struct ProposalContract {
         #[storage_field]
         data: Data,
     }
 
-    impl Proposal for ProposalEvent {
-        #[ink(message)]
-        fn execute(&mut self, id: ProposalId) -> Result<(), Error> {
-            let proposal = self
-                .data
-                .proposals
-                .get(&id)
-                .ok_or(Error::ProposalNotExists)?;
+    impl Proposal for ProposalContract {}
 
-            if proposal.status == Status::Rejected {
-                self.data.proposals.insert(
-                    &id,
-                    &ProposalData {
-                        status: Status::Archived,
-                        ..proposal
-                    },
-                );
-                return Ok(());
-            }
-
-            if proposal.status != Status::Pending {
-                return Err(Error::ProposalIsNotPending);
-            }
-            if proposal.token_address.is_none() {
-                if Self::env().balance() < proposal.amount.unwrap_or_default() {
-                    return Err(Error::NotEnoughFunds);
-                }
-
-                Self::env()
-                    .transfer(
-                        proposal.account_to.unwrap(),
-                        proposal.amount.unwrap_or_default(),
-                    )
-                    .map_err(|_| Error::TransferError)?;
-            } else {
-                todo!()
-                //token psp22 transfer
-            }
-
-            self.data.proposals.insert(
-                &id,
-                &ProposalData {
-                    status: Status::Executed,
-                    ..proposal
-                },
-            );
-            Self::env().emit_event(Executed {
-                proposal_id: Some(id),
-                executor: Some(Self::env().caller()),
-                account_to: proposal.account_to,
-                amount: proposal.amount,
-            });
-            Ok(())
-        }
-    }
-
-    impl ProposalEvent {
+    impl ProposalContract {
         #[ink(constructor)]
         pub fn new(master_dao: AccountId) -> Self {
             let mut instance = Self::default();
@@ -79,18 +25,80 @@ mod proposal_transfer {
             instance
         }
     }
+    // due to how ink! currently handles events, it is impossible to implement events in default implementation
+    impl Internal for ProposalContract {
+        fn _emit_proposal_created_event(&self, proposal_id: ProposalId, creator: AccountId) {
+            Self::env().emit_event(ProposalCreated {
+                proposal_id,
+                creator,
+            })
+        }
+        fn _emit_voted_event(&self, proposal_id: ProposalId, voter: AccountId) {
+            Self::env().emit_event(Voted { proposal_id, voter })
+        }
+        fn _emit_votes_counted_event(&self, proposal_id: ProposalId) {
+            Self::env().emit_event(VotesCounted { proposal_id })
+        }
+        fn _emit_executed_event(&self, proposal_id: ProposalId, executor: AccountId) {
+            Self::env().emit_event(Executed {
+                proposal_id,
+                executor,
+            })
+        }
+        fn _emit_transferred_event(
+            &self,
+            proposal_id: ProposalId,
+            account_to: AccountId,
+            amount: Balance,
+        ) {
+            Self::env().emit_event(Transferred {
+                proposal_id,
+                account_to,
+                amount,
+            })
+        }
+    }
+    #[ink(event)]
+    pub struct ProposalCreated {
+        #[ink(topic)]
+        proposal_id: ProposalId,
+
+        #[ink(topic)]
+        creator: AccountId,
+    }
 
     #[ink(event)]
     pub struct Executed {
         #[ink(topic)]
-        proposal_id: Option<ProposalId>,
+        proposal_id: ProposalId,
 
         #[ink(topic)]
-        executor: Option<AccountId>,
+        executor: AccountId,
+    }
+
+    #[ink(event)]
+    pub struct Transferred {
+        #[ink(topic)]
+        proposal_id: ProposalId,
 
         #[ink(topic)]
-        account_to: Option<AccountId>,
+        account_to: AccountId,
 
-        amount: Option<Balance>,
+        amount: Balance,
+    }
+
+    #[ink(event)]
+    pub struct Voted {
+        #[ink(topic)]
+        proposal_id: ProposalId,
+
+        #[ink(topic)]
+        voter: AccountId,
+    }
+
+    #[ink(event)]
+    pub struct VotesCounted {
+        #[ink(topic)]
+        proposal_id: ProposalId,
     }
 }

@@ -29,14 +29,13 @@ mod strategy_psp22 {
     }
 
     impl gov22::GOV22 for GOV22Contract {}
-    ///trait implementation
+
     impl strategy::Strategy for GOV22Contract {
         #[ink(message)]
         fn get_vote_weight(&self, address: AccountId) -> Option<u128> {
-            //the logic could include getting some values from MasterDao contract
-            //checking balance of a particular token of the `address`
+
             let balance = PSP22Ref::balance_of(&self.gov22.token_address, address);
-            //just dummy calculation  with some balance of PSP22 token
+
             if balance > 0 {
                 return Some(balance * self.factor);
             }
