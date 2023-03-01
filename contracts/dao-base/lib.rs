@@ -21,8 +21,7 @@ mod dao_base {
     }
 
     impl Dao for DaoContract {}
-    impl AccessControl for DaoContract {}
-    impl AccessControlEnumerable for DaoContract {}
+
 
     impl DaoContract {
         #[ink(constructor)]

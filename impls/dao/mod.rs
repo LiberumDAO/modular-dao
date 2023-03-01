@@ -4,7 +4,7 @@ use openbrush::storage::Mapping;
 use openbrush::traits::{AccountId, Balance, OccupiedStorage, Storage};
 use openbrush::{contracts::access_control::*, modifiers};
 
-use ink::storage::traits::{ManualKey, ResolverKey, Storable, StorableHint};
+use ink::storage::traits::{ManualKey, AutoStorableHint, Storable, StorableHint};
 
 pub const FOUNDER: RoleType = 1;
 
@@ -52,11 +52,8 @@ where
     M: members::MembersManager,
     M: Storable
         + StorableHint<ManualKey<{ access_control::STORAGE_KEY }>>
-        + StorableHint<
-            ResolverKey<
-                <M as StorableHint<ManualKey<{ access_control::STORAGE_KEY }>>>::PreferredKey,
-                ManualKey<3218979580, ManualKey<{ access_control::STORAGE_KEY }>>,
-            >,
+        + AutoStorableHint<
+            ManualKey<3218979580, ManualKey<{ access_control::STORAGE_KEY }>>,
             Type = M,
         >,
 {
@@ -175,8 +172,15 @@ where
     }
 
     #[modifiers(only_role(FOUNDER))]
-    default fn remove_proposal_type(&mut self, proposal_address: AccountId) -> Result<(), dao::Error> {
-        if self.data::<Data>().proposal_types.contains(&proposal_address) {
+    default fn remove_proposal_type(
+        &mut self,
+        proposal_address: AccountId,
+    ) -> Result<(), dao::Error> {
+        if self
+            .data::<Data>()
+            .proposal_types
+            .contains(&proposal_address)
+        {
             let i = self
                 .data::<Data>()
                 .proposal_types
@@ -189,7 +193,7 @@ where
         }
         Ok(())
     }
-    
+
     ///Calculates vote weight based on incorporated strategies at given moment
     ///Returns total vote weight + delegated votes for a given `AccountId`
     default fn get_vote_weight(&self, address: AccountId) -> Result<Option<u128>, dao::Error> {
