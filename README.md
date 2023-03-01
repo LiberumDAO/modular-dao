@@ -1,4 +1,21 @@
-# **Draft of the modular-dao's smart contracts.**
+<h1 align="center">
+    LiberumDAO's implementation of modular-dao concept.
+</h1>
+
+## What is it?
+
+Modular-dao is a set of smart contracts built using [ink!](https://github.com/paritytech/ink) and [OpenBrush](https://github.com/727-Ventures/openbrush-contracts) that allows creation of customizable DAOs.
+
+## How does it work?
+
+At the moment, the system consists of 3 types of modules: **DAO-base**, **strategy** and **proposal**. 
+* **DAO-base** role is to be a "master" of all the other smart contracts. It defines the basic rules of a DAO, implements a solution for vote delegation, role-based governance of the DAO and interacts with other smart contracts that implement other logic required in a DAO.
+* The **strategy** is responsible for calculating members' "influence" in a DAO. The example smart contracts that implement **strategy** trait are PSP22 based strategy and whitelist strategy. 
+* The **proposal** module brings the proposal creation, voting, and proposal execution functionalities. The example smart contract that implements **proposal** allows to transfer specified amount of native token to an account and emits appropriate event upon the proposal execution.
+
+## Modularity
+
+
 
 ## Project structure:
 ```bash
