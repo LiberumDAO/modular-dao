@@ -22,10 +22,9 @@ In the future, we plan to develop more modules such as private voting and multi-
 All the contracts that implement **strategy** share common interface. However, the logic that is responsible for calculating "influence" can be defined independently. This combined with modular approach, allows a DAO to incorporate multiple strategies in parallel.
 
 ### **Proposal**
-The proposal lifetime consists of 4 cycles: creation, voting period, counting votes and execution. The creation and voting period are straight-forward and self-explanatory. After a proposal is created and submitted by an user with appropriate role in DAO, users can vote on proposal using one out of 3 options: *For*, *Against* or *Abstain*. After the voting period passes, it is not possible to submit a vote. After that, the votes are counted by calling appropriate method on **proposal** contract. The votes weights are calculated based on the incorporated strategies in DAO. It is important to notice that the "influence" used to calculate votes weights is considered during the vote calculation cycle, not during the voting period. Finally, depending on the outcome, the proposal is either rejected or set to be pedning for execution.
+The proposal lifetime consists of 4 cycles: creation, voting period, counting votes and execution. The creation and voting period are straight-forward and self-explanatory. After a proposal is created and submitted by an user with appropriate role in DAO, users can vote on proposal using one out of 3 options: *For*, *Against* or *Abstain*. After the voting period passes, it is not possible to submit a vote. After that, the votes are counted by calling appropriate method on **proposal** contract. The votes weights are calculated based on the incorporated strategies in DAO. It is important to notice that the "influence" used to calculate votes weights is considered at the time of the vote calculation, not when a vote if submitted. Finally, depending on the outcome, the proposal is either rejected or set to be pedning for execution.
 
 At the moment, the implemented **proposal** contract's execution logic is to transfer certain amount of native token to specified wallet. In the future, we plan to seperate the "execution logic" from the proposal so it is possible to enact custom actions upon propsal execution.
-
 
 ## How to try it out?
 To compile the contracts, you need to use ```cargo-contract v2.0.0```. You can install it as follows:
@@ -38,6 +37,21 @@ dao::add_strategy(address: AccountId)
 dao::add_proposal_type(address: AccountId)
 ```
 Only wallets that are ```FOUNDER```s of the DAO are allowed to add and remove modules.
+
+## Play with it!
+You can define your own custom strategy by creating a contract that implements the **strategy** trait and override default implementation:
+```rust
+[...]
+impl strategy::Strategy for MyCustomStrategy {
+        #[ink(message)]
+        fn get_vote_weight(&self, address: AccountId) -> Option<u128> {
+
+            //the logic of your custom strategy
+
+        }
+    }
+[...]
+```
 
 ## Project structure:
 ```bash
